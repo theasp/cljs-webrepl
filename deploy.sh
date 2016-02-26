@@ -25,7 +25,6 @@ mv * .build
 # Move what we want into place
 mv .build/resources/public/* .
 mv .build/target/cljsbuild/public/* .
-rm -rf js/out
 
 # Remove the old files
 git rm --cached -r .
