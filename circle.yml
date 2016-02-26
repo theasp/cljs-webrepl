@@ -3,8 +3,14 @@ general:
     ignore:
       - gh-pages
 
+test:
+  pre:
+    - lein with-profile dev cljsbuild once
+
 deployment:
   master:
     branch: master
     commands:
+      - lein clean
+      - lein with-profile prod cljsbuild once
       - ./deploy.sh
