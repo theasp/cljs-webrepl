@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :dependencies [[org.clojure/clojure "1.8.0"]                 
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.7.228"]
                  [cljsjs/material "1.1.1-0"]
                  [com.taoensso/timbre "4.2.1"]
@@ -33,7 +33,7 @@
                    {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
 
   :cljsbuild {:builds
-              {:app {:source-paths ["src/cljs" "env/prod/cljs"]
+              {:app {:source-paths ["src/cljs"]
                      :compiler     {:output-to     "target/cljsbuild/public/js/app.js"
                                     :output-dir    "target/cljsbuild/public/js/out"
                                     :asset-path    "js/out"
@@ -66,15 +66,27 @@
                                     :compiler     {:output-to     "target/test.js"
                                                    :main          cljs-webrepl.doo-runner
                                                    :optimizations :whitespace
-                                                   :pretty-print  true}}}}
+                                                   :pretty-print  true}}}}}
 
-              :uberjar   {:hooks       [minify-assets.plugin/hooks]
-                          :prep-tasks  ["cljsbuild" "once"]
-                          :env         {:production true}
-                          :omit-source true
-                          :cljsbuild
-                          {:jar    true
-                           :builds {:app
-                                    {:compiler
-                                     {:optimizations :whitespace
-                                      :pretty-print  false}}}}}}})
+             :prod    {:hooks       [minify-assets.plugin/hooks]
+                       :prep-tasks  ["cljsbuild" "once"]
+                       :env         {:production true}
+                       :omit-source true
+                       :cljsbuild
+                       {:builds {:app
+                                 {:source-paths ["src/cljs" "env/prod/cljs"]
+                                  :compiler
+                                  {:optimizations :whitespace
+                                   :pretty-print  false}}}}}
+
+             :uberjar {:hooks       [minify-assets.plugin/hooks]
+                       :prep-tasks  ["cljsbuild" "once"]
+                       :env         {:production true}
+                       :omit-source true
+                       :cljsbuild
+                       {:jar    true
+                        :builds {:app
+                                 {:source-paths ["src/cljs" "env/prod/cljs"]
+                                  :compiler
+                                  {:optimizations :whitespace
+                                   :pretty-print  false}}}}}})
