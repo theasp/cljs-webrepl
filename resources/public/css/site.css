@@ -1,0 +1,112 @@
+#app {
+  width: 100vw;
+  height: 100vh;
+}
+
+body {
+  font-family: Roboto, Helvetica, Arial, sans-serif;
+  /*  background-color: #FAFAFA; */
+  background-color: #F2F2F2;
+  overflow-y: hidden; /* Disable pull down to refresh in chrome */
+}
+
+pre, code {
+  color: #000000;
+  font-family: 'Roboto Mono', 'Courier New', monospace;
+}
+
+.mdl-card__supporting-text {
+  width: 90%; /* fallback if needed */
+  width: calc(100% - 32px);
+}
+
+.mdl-card {
+  width: 100%;
+  min-height: 0px;
+}
+
+hr.border {
+  margin: 0px;
+}
+
+.wide {
+  width: 100%;
+}
+
+.tall {
+  height: 100%;
+}
+
+.flex-v {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-h {
+  display: flex;
+  flex-direction: row;
+  vertical-align: center;
+}
+
+.history {
+  flex: auto;
+  overflow-y: scroll;
+}
+
+.input {
+  flex: none;
+}
+
+.input-field {
+  flex: auto;
+}
+
+.run-button {
+  flex: none;
+}
+
+.input textarea {
+  resize: none;
+}
+
+.no-padding {
+  padding: 0px;
+}
+
+.no-padding-top {
+  padding-top: 0px;
+}
+
+.no-padding-bottom {
+  padding-bottom: 0px;
+}
+
+.svg-size {
+  height: 2.25em;
+}
+
+/* See: https://github.com/google/material-design-lite/issues/1407 */
+.mdl-card {
+  overflow: visible;
+  z-index: auto;
+}
+
+.white-bg {
+  background-color: #ffffff;
+}
+
+.card-data, .padding-left {
+  padding-left: 16px;
+}
+
+.card-data, .padding-right {
+  padding-right: 16px;
+}
+
+.expression, .padding-top {
+  padding-top: 16px;
+}
+
+.expression, .padding-bottom {
+  padding-bottom: 16px;
+}
