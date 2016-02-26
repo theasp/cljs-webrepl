@@ -1,0 +1,10 @@
+general:
+  branches:
+    ignore:
+      - gh-pages
+
+deployment:
+  master:
+    branch: master
+    commands:
+      - depoly.sh
