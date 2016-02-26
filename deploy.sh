@@ -41,7 +41,7 @@ git rm --cached -r .
 rm -rf .build
 
 # Add google tag
-perl -p -i -e "s%<!-- @@GOOGLETAG@@ -->%$GOOGLETAG%" index.html
+perl -p -i -e "s%<!-- GOOGLETAG -->%${GOOGLETAG}%" index.html
 
 # Push to gh-pages.
 git add -fA
