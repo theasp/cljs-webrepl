@@ -76,7 +76,7 @@
                        {:builds {:app
                                  {:source-paths ["src/cljs" "env/prod/cljs"]
                                   :compiler
-                                  {:optimizations :whitespace
+                                  {:optimizations :none
                                    :pretty-print  false}}}}}
 
              :uberjar {:hooks       [minify-assets.plugin/hooks]
@@ -88,5 +88,5 @@
                         :builds {:app
                                  {:source-paths ["src/cljs" "env/prod/cljs"]
                                   :compiler
-                                  {:optimizations :whitespace
+                                  {:optimizations :none
                                    :pretty-print  false}}}}}})
