@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# Exit if any subcommand fails.
-set -e
+set -ex
 
 # Variables
 ORIGIN_URL=`git config --get remote.origin.url`
 
-echo "Started deploying"
+# Set identity
+git config user.name "Automated Deployment"
+git config user.email "auto@example.com"
 
 # Delete existing gh-pages branch
 if git branch | grep -q gh-pages; then
@@ -31,9 +32,6 @@ git rm --cached -r .
 rm -rf .build
 
 # Push to gh-pages.
-git config user.name "$USER_NAME"
-git config user.email "$USER_EMAIL"
-
 git add -fA
 git commit --allow-empty -m "Automated Deployment [ci skip]"
 git push -f $ORIGIN_URL gh-pages
