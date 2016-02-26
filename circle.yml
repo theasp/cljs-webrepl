@@ -1,4 +1,6 @@
 machine:
+  environment:
+    _JAVA_OPTIONS: -Xmx1g
   java:
     version: oraclejdk8
 
