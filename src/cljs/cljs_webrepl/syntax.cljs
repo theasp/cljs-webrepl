@@ -100,4 +100,4 @@
                        (conj (pop res) (str old val))
                        (conj res val)))
                    (conj res [:span style val])))
-          (into [:div] res))))))
+          (into [:span] res))))))
