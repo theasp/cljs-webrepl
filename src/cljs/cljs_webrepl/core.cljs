@@ -154,8 +154,9 @@
          {:data-clipboard-text result}
          "Copy Result"]]]]]
     [:div.card-data.expression
-     [:code (str num " " ns)]
-     [:code (syntaxify expression)]]
+     [:code
+      (str num " " ns "=> ")
+      (syntaxify expression)]]
     [:hr.border]
     (when (and (some? output) (not= "" output))
       [:div.output
