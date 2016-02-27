@@ -1,6 +1,6 @@
 # CLJS-WebREPL
 
-An attempt at a nice looking REPL for ClojureScript.
+An attempt at a nice looking in browser REPL for ClojureScript.  Try out the [live version](http://theasp.github.io/cljs-webrepl/)!
 
 # Thanks
 - Joel Martin and David Nolen for the cljs-bootstrap REPL bits:
