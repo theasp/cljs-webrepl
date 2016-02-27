@@ -120,16 +120,6 @@
     :component-did-mount scroll
     :reagent-render      (fn [child] child)}))
 
-;; (defn highlight [node]
-;;   (let [node (r/dom-node node)]
-;;     (highlight/highlightBlock node)))
-
-;; (defn highlight-clojure [value]
-;;   (r/create-class
-;;    :display-name "highlight"
-;;    :component-did-mount highlight
-;;    :reagent-render (fn [value] [:code.clojure value])))
-
 (defn pprint-output
   [value]
   [:pre [:code (syntaxify (with-out-str (pprint value)))]])
@@ -173,11 +163,9 @@
         [:code [:pre output]]]
        [:hr.border]])
     [:div.card-data.result
-     (cond
-       (some? exception)
-       [:code exception]
-
-       :else
+     (if (some? exception)
+       [:code
+        [:pre exception]]
        [:code
         [:pre
          (syntaxify (with-out-str (pprint result)))]])]]])
@@ -245,9 +233,6 @@
       (:google-tag (:config props))
       [history props]
       [input props]]]))
-
-;; -------------------------
-;; Initialize app
 
 (defn mount-root []
   (r/render [home-page] (.getElementById js/document "app")))
