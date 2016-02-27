@@ -9,7 +9,6 @@
                  [cljsjs/material "1.1.1-0"]
                  [com.taoensso/timbre "4.2.1"]
                  [cljsjs/clipboard "1.5.5-0"]
-                 [devcards "0.2.1-6"]
                  [environ "1.0.2"]
                  [figwheel "0.5.0-6"]
                  [hiccup "1.0.5"]
@@ -41,13 +40,9 @@
                                     :optimizations :none
                                     :pretty-print  true}}}}
 
-  :sass {:src "src/sass"
-         :dst "resources/public/css"}
-
   :profiles {:dev
              {:plugins   [[lein-figwheel "0.5.0-6"]
                           [lein-doo "0.1.6"]
-                          [lein-sassy "1.0.7"]
                           [com.cemerick/austin "0.1.6"]]
 
               :figwheel  {:http-server-root "public"
