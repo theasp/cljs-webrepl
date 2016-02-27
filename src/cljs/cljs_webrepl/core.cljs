@@ -12,11 +12,13 @@
     :refer-macros (tracef debugf infof warnf errorf)]))
 
 (defonce state
-  (atom {:repl    (repl/new-repl)
-         :input   "(+ 1 2)"
-         :next    1
-         :cursor  0
-         :history []}))
+  (let [repl (repl/new-repl)]
+    (atom {:repl    repl
+           :ns      (repl/get-ns repl)
+           :input   "(+ 1 2)"
+           :next    1
+           :cursor  0
+           :history []})))
 
 (defn clipboard [child]
   (let [clipboard-atom (atom nil)]
@@ -31,11 +33,6 @@
          (reset! clipboard-atom nil))
       :reagent-render
       (fn [child] child)})))
-
-(defn clear-input [props]
-  (swap! (:state props) assoc
-         :cursor 0
-         :input ""))
 
 (defn eval-str [state s]
   (let [repl       (:repl @state)
@@ -57,11 +54,7 @@
                                :ns         ns
                                :expression expression}))))))
 
-(defn eval-input [props]
-  (let [state (:state props)]
-    (eval-str state (:input @state))))
-
-(defn history-prev* [{:keys [cursor history] :as state}]
+(defn history-prev [{:keys [cursor history] :as state}]
   (let [c          (count history)
         new-cursor (inc cursor)]
     (if (<= new-cursor c)
@@ -70,11 +63,7 @@
              :input (:expression (nth history (- c new-cursor))))
       state)))
 
-(defn history-prev [props]
-  (let [state (:state props)]
-    (swap! state history-prev*)))
-
-(defn history-next* [{:keys [cursor history] :as state}]
+(defn history-next [{:keys [cursor history] :as state}]
   (let [c          (count history)
         new-cursor (dec cursor)]
     (if (> new-cursor 0)
@@ -83,35 +72,40 @@
              :input (:expression (nth history (- c new-cursor))))
       state)))
 
-(defn history-next [props]
-  (debugf "History next")
-  (let [state (:state props)]
-    (swap! state history-next*)))
+(defn clear-input [state]
+  (assoc state
+         :cursor 0
+         :input ""))
 
-(defn input-key-down [props event]
+(defn eval-input [state]
+  (let [input (trim (:input @state))]
+    (when-not (= "" input)
+      (eval-str state input))))
+
+(defn input-key-down [state event]
   (case (.-which event)
     ;; Enter
-    13 (do (eval-input props)
+    13 (do (eval-input state)
            (. event preventDefault))
 
     ;; Escape
-    27 (do (clear-input props)
+    27 (do (swap! state clear-input)
            (. event preventDefault))
 
     ;; Tab
     9  (. event preventDefault)
 
     ;; Up
-    38 (do (history-prev props)
+    38 (do (swap! state history-prev)
            (. event preventDefault))
 
     ;;Down
-    40 (do (history-next props)
+    40 (do (swap! state history-next)
            (. event preventDefault))
     nil))
 
-(defn input-on-change [props event]
-  (swap! (:state props) assoc
+(defn input-on-change [state event]
+  (assoc state
          :cursor 0
          :input (-> event .-target .-value)))
 
@@ -141,7 +135,7 @@
   [:pre [:code (syntaxify (with-out-str (pprint value)))]])
 
 (defn history-card
-  [props {:keys [ns output exception num expression result] :as history-item}]
+  [{:keys [state] :as props} {:keys [ns output exception num expression result] :as history-item}]
   [:div.mdl-cell.mdl-cell--12-col
    [:div.mdl-card.mdl-shadow--2dp
     [mdl/upgrade
@@ -151,18 +145,17 @@
       [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
        {:for (str "menu-" num)}
        [:li.mdl-menu__item
-        {:on-click #(eval-str (:state props) expression)}
+        {:on-click #(eval-str state expression)}
         "Evaluate Again"]
        [clipboard
         [:li.mdl-menu__item
          {:data-clipboard-text expression}
          "Copy Expression"]]
        (if (and (some? output) (not= "" output))
-         (do (debugf "Have output")
-             [clipboard
-              [:li.mdl-menu__item
-               {:data-clipboard-text output}
-               "Copy Output"]])
+         [clipboard
+          [:li.mdl-menu__item
+           {:data-clipboard-text output}
+           "Copy Output"]]
          [:li.mdl-menu__item
           {:disabled true}
           "Copy Output"])
@@ -210,8 +203,8 @@
           :id           "input"
           :autocomplete "off"
           :value        (:input @state)
-          :on-change    #(input-on-change props %)
-          :on-key-down  #(input-key-down props %)}]
+          :on-change    #(swap! state input-on-change %)
+          :on-key-down  #(input-key-down state %)}]
         [:label.mdl-textfield__label {:for "input"}
          (str (repl/get-ns (:repl @state)) "=>")]]]]]))
 
@@ -223,7 +216,7 @@
      [mdl/upgrade
       [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-js-ripple-effect.mdl-button--colored
        (merge (when is-blank? {:disabled true})
-              {:on-click #(eval-input props)})
+              {:on-click #(eval-input state)})
        [:i.material-icons "send"]]]]))
 
 
@@ -261,5 +254,3 @@
 
 (defn init! []
   (mount-root))
-
-(init!)
