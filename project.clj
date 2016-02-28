@@ -37,6 +37,7 @@
                                     :output-dir    "target/cljsbuild/public/js/out"
                                     :asset-path    "js/out"
                                     :main          cljs-webrepl.prod
+                                    :static-fns    true
                                     :optimizations :none
                                     :pretty-print  true}}}}
 
