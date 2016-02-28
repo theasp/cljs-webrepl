@@ -239,4 +239,5 @@
   (r/render [home-page] (.getElementById js/document "app")))
 
 (defn init! []
+  (repl/init)
   (mount-root))

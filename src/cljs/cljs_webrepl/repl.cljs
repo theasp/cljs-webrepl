@@ -52,8 +52,7 @@
 (defn native-load [{:keys [macros] :as cfg} cb]
   (get-file* (get *file-extensions* macros) cfg cb))
 
-(defn init-repl [mode & init-opts]
-  (set! *target* mode)
+(defn init [& init-opts]
   ;; Setup source/require resolution
   (apply set-load-cfg init-opts)
   ;; Create cljs.user
