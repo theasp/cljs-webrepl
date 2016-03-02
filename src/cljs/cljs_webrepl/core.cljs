@@ -269,9 +269,9 @@
             "GitHub"]
            [:li.mdl-menu__item
             {:on-click show-about-dialog}
-            "About"]]]]]
-       [history props]
-       [input props]]]]))
+            "About"]]]]
+        [history props]
+        [input props]]]]]))
 
 (defn mount-root []
   (r/render [home-page] (.getElementById js/document "app")))
