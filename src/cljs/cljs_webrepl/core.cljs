@@ -265,6 +265,9 @@
           [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
            {:for "main-menu"}
            [:li.mdl-menu__item
+            {:on-click #(set! (.-location js/window) "https://github.com/theasp/cljs-webrepl")}
+            "GitHub"]
+           [:li.mdl-menu__item
             {:on-click show-about-dialog}
             "About"]]]]]
        [history props]
