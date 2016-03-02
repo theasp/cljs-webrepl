@@ -208,7 +208,6 @@
               {:on-click #(eval-input state)})
        [:i.material-icons "send"]]]]))
 
-
 (defn input [props]
   [:div.input
    [:div.mdl-grid.mdl-shadow--2dp.white-bg
@@ -217,23 +216,59 @@
       [input-field props]
       [run-button props]]]]])
 
+(defn close-about-dialog []
+  (when-let [dialog (.querySelector js/document "#about-dialog")]
+    (.close dialog)))
+
+(defn about-dialog []
+  [:dialog.mdl-dialog {:id "about-dialog"}
+   [:h4.mdl-dialog__title "CLJS-WebREPL"]
+   [:div.mdl-dialog__content
+    [:p
+     "A ClojureScript browser based REPL"]
+    [:h5 "License"]
+    [:p
+     "Copyright © 2016 Andrew Phillips, Dan Holmsand, Mike Fikes, David Nolen, Rich Hickey, Joel Martin & Contributors"]
+    [:p
+     "Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version."]]
+   [:div.mdl-dialog__actions
+    [:button.mdl-button
+     {:on-click close-about-dialog}
+     "Ok"]]])
+
+(defn show-about-dialog []
+  (debugf "Dialog")
+  (when-let [dialog (.querySelector js/document "#about-dialog")]
+    (debugf "Have dialog")
+    (.registerDialog js/dialogPolyfill dialog)
+    (.showModal dialog)))
+
 (defn home-page []
   (let [props {:state state
                :title "Cljs-WebREPL"}]
-    [:div.tall
-     [:div.flex-v.tall.mdl-layout.mdl-js-layout.mdl-layout--fixed-header.mdl-layout--no-drawer-button
-      [:header.mdl-layout__header
-       [:div.mdl-layout__header-row
-        [:span.mdl-layout-title
-         [:img.svg-size {:src "images/cljs-white.svg"}]
-         " CLJS-WebREPL"]
-        [:div.mdl-layout-spacer]
-        [:a.mdl-navigation__link.mdl-navigation__link--icon
-         {:href "https://github.com/theasp/cljs-webrepl"}
-         [:i.material-icons "link"][:span "GitHub"]]]]
-      (:google-tag (:config props))
-      [history props]
-      [input props]]]))
+    [:div
+     [about-dialog]
+     [:div.tall
+      [mdl/upgrade
+       [:div.flex-v.tall.mdl-layout.mdl-js-layout.mdl-layout--fixed-header.mdl-layout--no-drawer-button
+        [:header.mdl-layout__header
+         [:div.mdl-layout__header-row
+          [:span.mdl-layout-title
+           [:img.svg-size {:src "images/cljs-white.svg"}]
+           " CLJS-WebREPL"]
+          [:div.mdl-layout-spacer]
+          [:a.mdl-navigation__link.mdl-navigation__link--icon
+           {:href "https://github.com/theasp/cljs-webrepl"}
+           [:i.material-icons "link"][:span "GitHub"]]
+          [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id "main-menu"}
+           [:i.material-icons "more_vert"]]
+          [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
+           {:for "main-menu"}
+           [:li.mdl-menu__item
+            {:on-click show-about-dialog}
+            "About"]]]]]
+       [history props]
+       [input props]]]]))
 
 (defn mount-root []
   (r/render [home-page] (.getElementById js/document "app")))

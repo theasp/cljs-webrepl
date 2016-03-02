@@ -15,6 +15,12 @@ pre, code {
   font-family: 'Roboto Mono', 'Courier New', monospace;
 }
 
+.mdl-dialog {
+  min-width: 280px;
+  width: 280px;
+  width: calc(50%);
+}
+
 .mdl-card__supporting-text {
   width: 90%; /* fallback if needed */
   width: calc(100% - 32px);
