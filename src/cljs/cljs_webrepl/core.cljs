@@ -225,8 +225,9 @@
    [:h4.mdl-dialog__title "CLJS-WebREPL"]
    [:div.mdl-dialog__content
     [:p
-     "A ClojureScript browser based REPL"]
-    [:h5 "License"]
+     (str "A ClojureScript browser based REPL")]
+    [:p (str "Using ClojureScript version " *clojurescript-version*)]
+   [:h5 "License"]
     [:p
      "Copyright © 2016 Andrew Phillips, Dan Holmsand, Mike Fikes, David Nolen, Rich Hickey, Joel Martin & Contributors"]
     [:p
@@ -240,7 +241,8 @@
   (debugf "Dialog")
   (when-let [dialog (.querySelector js/document "#about-dialog")]
     (debugf "Have dialog")
-    (.registerDialog js/dialogPolyfill dialog)
+    (when-not (.-showModal dialog)
+      (.registerDialog js/dialogPolyfill dialog))
     (.showModal dialog)))
 
 (defn home-page []
