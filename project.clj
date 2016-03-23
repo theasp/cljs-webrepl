@@ -6,7 +6,7 @@
 
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.8.34"]
-                 [cljsjs/material "1.1.1-0"]
+                 [cljsjs/material "1.1.3-0"]
                  [com.taoensso/timbre "4.3.1"]
                  [cljsjs/clipboard "1.5.5-0"]
                  [environ "1.0.2"]
