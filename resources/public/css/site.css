@@ -13,6 +13,7 @@ body {
 pre, code {
   color: #000000;
   font-family: 'Roboto Mono', 'Courier New', monospace;
+  word-wrap: break-word;
 }
 
 .mdl-dialog {
