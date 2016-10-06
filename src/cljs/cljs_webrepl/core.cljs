@@ -5,20 +5,28 @@
    [reagent.session :as session]
    [cljs.pprint :refer [pprint]]
    [cljsjs.clipboard :as clipboard]
-   [cljs-webrepl.repl :as repl]
+   [replumb.core :as replumb]
    [cljs-webrepl.mdl :as mdl]
    [cljs-webrepl.syntax :refer [syntaxify]]
+   [replumb.core :as replumb]
+   [replumb.repl :as replumb-repl]
+   [cljs-webrepl.io :as replumb-io]
    [taoensso.timbre :as timbre
     :refer-macros (tracef debugf infof warnf errorf)]))
 
 (defonce state
-  (let [repl (repl/new-repl)]
-    (atom {:repl    repl
-           :ns      (repl/get-ns repl)
-           :input   "(+ 1 2)"
-           :next    1
-           :cursor  0
-           :history []})))
+  (let [repl-opts (merge (replumb/options :browser
+                                          ["/src/cljs" "/js/compiled/out"]
+                                          replumb-io/fetch-file!)
+                         {:no-pr-str-on-value false
+                          :warning-as-error   true
+                          :verbose            false})]
+    (atom {:repl-opts repl-opts
+           :ns        (replumb-repl/current-ns)
+           :input     "(+ 1 2)"
+           :next      1
+           :cursor    0
+           :history   []})))
 
 (defn clipboard [child]
   (let [clipboard-atom (atom nil)]
@@ -34,25 +42,28 @@
       :reagent-render
       (fn [child] child)})))
 
-(defn eval-str [state s]
-  (let [repl       (:repl @state)
-        expression (trim s)
-        next       (:next @state)
-        ns         (repl/get-ns repl)
+(defn add-result [state ns expression output result]
+  (-> state
+      (update :next inc)
+      (assoc :input ""
+             :cursor 0)
+      (assoc :ns ns)
+      (update :history conj
+              (merge result
+                     {:ns         ns
+                      :expression expression
+                      :num        (:next state)
+                      :output     output}))))
+
+(defn eval-str! [state expression]
+  (let [repl-opts  (:repl-opts @state)
         result     (atom nil)
-        output
-        (with-out-str (reset! result (repl/safe-eval repl expression)))]
-    (swap! state
-           #(-> %
-               (update :next inc)
-               (assoc :input ""
-                      :cursor 0)
-               (update :history conj
-                       (merge @result
-                              {:num        next
-                               :output     output
-                               :ns         ns
-                               :expression expression}))))))
+        expression (str/trim expression)
+        output     (with-out-str (replumb/read-eval-call repl-opts
+                                                         (partial reset! result)
+                                                         expression))
+        ns         (replumb-repl/current-ns) ]
+    (swap! state add-result ns expression output @result)))
 
 (defn history-prev [{:keys [cursor history] :as state}]
   (let [c          (count history)
@@ -80,7 +91,7 @@
 (defn eval-input [state]
   (let [input (trim (:input @state))]
     (when-not (= "" input)
-      (eval-str state input))))
+      (eval-str! state input))))
 
 (defn input-key-down [state event]
   (case (.-which event)
@@ -120,12 +131,8 @@
     :component-did-mount scroll
     :reagent-render      (fn [child] child)}))
 
-(defn pprint-output
-  [value]
-  [:pre [:code (syntaxify (with-out-str (pprint value)))]])
-
 (defn history-card
-  [{:keys [state] :as props} {:keys [ns output exception num expression result] :as history-item}]
+  [{:keys [state] :as props} {:keys [ns output exception num expression value] :as history-item}]
   [:div.mdl-cell.mdl-cell--12-col
    [:div.mdl-card.mdl-shadow--2dp
     [mdl/upgrade
@@ -135,7 +142,7 @@
       [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
        {:for (str "menu-" num)}
        [:li.mdl-menu__item
-        {:on-click #(eval-str state expression)}
+        {:on-click #(eval-str! state expression)}
         "Evaluate Again"]
        [clipboard
         [:li.mdl-menu__item
@@ -151,7 +158,7 @@
           "Copy Output"])
        [clipboard
         [:li.mdl-menu__item
-         {:data-clipboard-text result}
+         {:data-clipboard-text value}
          "Copy Result"]]]]]
     [:div.card-data.expression
      [:code
@@ -169,7 +176,9 @@
         [:pre exception]]
        [:code
         [:pre
-         (syntaxify (with-out-str (pprint result)))]])]]])
+         (if (string? value)
+           value
+           (syntaxify (with-out-str (pprint value))))]])]]])
 
 (defn history [props]
   (let [state (:state props)]
@@ -195,7 +204,7 @@
           :on-change    #(swap! state input-on-change %)
           :on-key-down  #(input-key-down state %)}]
         [:label.mdl-textfield__label {:for "input"}
-         (str (repl/get-ns (:repl @state)) "=>")]]]]]))
+         (str (:ns @state) "=>")]]]]]))
 
 (defn run-button [props]
   (let [state     (:state props)
@@ -238,9 +247,7 @@
      "Ok"]]])
 
 (defn show-about-dialog []
-  (debugf "Dialog")
   (when-let [dialog (.querySelector js/document "#about-dialog")]
-    (debugf "Have dialog")
     (when-not (.-showModal dialog)
       (.registerDialog js/dialogPolyfill dialog))
     (.showModal dialog)))
@@ -279,5 +286,4 @@
   (r/render [home-page] (.getElementById js/document "app")))
 
 (defn init! []
-  (repl/init)
   (mount-root))
