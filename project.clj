@@ -44,7 +44,7 @@
                                     :pretty-print  true}}}}
 
   :profiles {:dev
-             {:plugins   [[lein-figwheel "0.5.0-6"]
+             {:plugins   [[lein-figwheel "0.5.8"]
                           [lein-doo "0.1.6"]
                           [com.cemerick/austin "0.1.6"]]
 
