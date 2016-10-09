@@ -13,9 +13,37 @@ body {
 pre, code {
   color: #000000;
   font-family: 'Roboto Mono', 'Courier New', monospace;
+  box-sizing:border-box;
+  -moz-box-sizing:border-box;
+  webkit-box-sizing:border-box;
+  display:block;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+  width:100%; overflow-x:auto;
+}
+
+pre.line {
+    counter-reset: line;
+}
+
+code.line {
+    counter-increment: line;
+}
+
+code.line:before{
+    content: counter(line);
+    padding-right: 8px;
+}
+
+/* pre, code {
+  color: #000000;
+  font-family: 'Roboto Mono', 'Courier New', monospace;
   word-wrap: break-word;
   word-break: break-all;
-}
+} */
 
 .mdl-dialog {
   min-width: 280px;
