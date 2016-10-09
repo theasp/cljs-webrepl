@@ -1,32 +1,67 @@
 (ns cljs-webrepl.core
   (:require
    [clojure.string :as str :refer [blank? trim]]
+   [cljs.core.async :refer [chan close! timeout put!]]
+   [cljs-webrepl.repl :as repl]
    [reagent.core :as r :refer [atom]]
    [reagent.session :as session]
    [cljs.pprint :refer [pprint]]
    [cljsjs.clipboard :as clipboard]
-   [replumb.core :as replumb]
    [cljs-webrepl.mdl :as mdl]
    [cljs-webrepl.syntax :refer [syntaxify]]
-   [replumb.core :as replumb]
-   [replumb.repl :as replumb-repl]
-   [cljs-webrepl.io :as replumb-io]
    [taoensso.timbre :as timbre
-    :refer-macros (tracef debugf infof warnf errorf)]))
+    :refer-macros (tracef debugf infof warnf errorf)])
+  (:require-macros
+   [cljs.core.async.macros :refer [go go-loop]]))
 
 (defonce state
-  (let [repl-opts (merge (replumb/options :browser
-                                          ["/src/cljs" "/js/compiled/out"]
-                                          replumb-io/fetch-file!)
-                         {:no-pr-str-on-value false
-                          :warning-as-error   true
-                          :verbose            false})]
-    (atom {:repl-opts repl-opts
-           :ns        (replumb-repl/current-ns)
-           :input     "(+ 1 2)"
-           :next      1
-           :cursor    0
-           :history   []})))
+  (atom {:repl-opts repl/default-repl-opts
+         :ns        (repl/current-ns)
+         :input     "(+ 1 2)"
+         :next      0
+         :cursor    0
+         :history   []}))
+
+(defn new-eval-in-state [{:keys [next] :as state}]
+  (-> state
+      (assoc :next (inc next))
+      (update :history conj {:num    next
+                             :output []})))
+
+
+(defn repl-init-event [path [ns expression]]
+  (swap! state update-in path assoc :ns ns :expression expression))
+
+(defn repl-result-event [path [ns result]]
+  (swap! state #(-> %
+                    (assoc :ns ns)
+                    (update-in path assoc :result result))))
+
+(defn repl-output-event [path [s]]
+  (swap! state update-in path update :output conj s))
+
+(defn handle-replumb-event [path event]
+  (let [name  (first event)
+        value (rest event)]
+    (condp = name
+      :init   (repl-init-event path value)
+      :result (repl-result-event path value)
+      :print  (repl-output-event path value)
+      (warnf "Unknown repl event: %s" event))))
+
+(defn dispatch-replumb-events [result-chan]
+  (let [ch-num (:next (swap! state new-eval-in-state))
+        path   [:history (dec ch-num)]]
+    (go-loop []
+      (when-let [event (<! result-chan)]
+        (handle-replumb-event path event)
+        (recur)))))
+
+(defn eval-str! [expression]
+  (some-> expression
+          (trim)
+          (repl/replumb-async (:repl-opts @state))
+          (dispatch-replumb-events)))
 
 (defn clipboard [child]
   (let [clipboard-atom (atom nil)]
@@ -41,29 +76,6 @@
          (reset! clipboard-atom nil))
       :reagent-render
       (fn [child] child)})))
-
-(defn add-result [state ns expression output result]
-  (-> state
-      (update :next inc)
-      (assoc :input ""
-             :cursor 0)
-      (assoc :ns ns)
-      (update :history conj
-              (merge result
-                     {:ns         ns
-                      :expression expression
-                      :num        (:next state)
-                      :output     output}))))
-
-(defn eval-str! [state expression]
-  (let [repl-opts  (:repl-opts @state)
-        result     (atom nil)
-        expression (str/trim expression)
-        output     (with-out-str (replumb/read-eval-call repl-opts
-                                                         (partial reset! result)
-                                                         expression))
-        ns         (replumb-repl/current-ns) ]
-    (swap! state add-result ns expression output @result)))
 
 (defn history-prev [{:keys [cursor history] :as state}]
   (let [c          (count history)
@@ -91,7 +103,8 @@
 (defn eval-input [state]
   (let [input (trim (:input @state))]
     (when-not (= "" input)
-      (eval-str! state input))))
+      (eval-str! input)
+      (swap! state assoc :input ""))))
 
 (defn input-key-down [state event]
   (case (.-which event)
@@ -121,6 +134,7 @@
          :input (-> event .-target .-value)))
 
 (defn scroll [node]
+  #_(debugf "Scroll!")
   (let [node (r/dom-node node)]
     (aset node "scrollTop" (.-scrollHeight node))))
 
@@ -129,56 +143,75 @@
   (r/create-class
    {:display-name        "scroll-on-update"
     :component-did-mount scroll
-    :reagent-render      (fn [child] child)}))
+    :reagent-render      identity}))
+
+(defn pprint-syntax [value]
+  (syntaxify (with-out-str (pprint value))))
+
+(defn history-card-menu [props {:keys [ns num expression result output] :as history-item}]
+  [mdl/upgrade
+   [:div.mdl-card__menu
+    [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id (str "menu-" num)}
+     [:i.material-icons "more_vert"]]
+    [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
+     {:for (str "menu-" num)}
+     [:li.mdl-menu__item
+      {:on-click #(eval-str! expression)}
+      "Evaluate Again"]
+     [clipboard
+      [:li.mdl-menu__item
+       {:data-clipboard-text expression}
+       "Copy Expression"]]
+     (if (seq output)
+       [clipboard
+        [:li.mdl-menu__item
+         {:data-clipboard-text "WHOOPS!"}
+         "Copy Output"]]
+       [:li.mdl-menu__item
+        {:disabled true}
+        "Copy Output"])
+     [clipboard
+      [:li.mdl-menu__item
+       {:data-clipboard-text (:value result)}
+       "Copy Result"]]]]])
+
+(defn history-card-output [props output]
+  [:div.card-outpu
+   [:div.card-data
+    (into [:pre.line]
+          (for [line output]
+            [:code.line line]))]
+   [:hr.border]])
+
+(defn history-card-result [props {:keys [success? value error] :as result}]
+  [:div.card-data.result
+   (if (some? result)
+     (if success?
+       [:code
+        [:pre
+         (if (string? value)
+           value
+           (pprint-syntax value))]]
+       [:code
+        [:pre (pprint-syntax error)]])
+     [:code
+      [:pre "..."]])])
 
 (defn history-card
-  [{:keys [state] :as props} {:keys [ns output exception num expression value] :as history-item}]
+  [{:keys [state] :as props} {:keys [ns num expression result output] :as history-item}]
   [:div.mdl-cell.mdl-cell--12-col
    [:div.mdl-card.mdl-shadow--2dp
-    [mdl/upgrade
-     [:div.mdl-card__menu
-      [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id (str "menu-" num)}
-       [:i.material-icons "more_vert"]]
-      [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
-       {:for (str "menu-" num)}
-       [:li.mdl-menu__item
-        {:on-click #(eval-str! state expression)}
-        "Evaluate Again"]
-       [clipboard
-        [:li.mdl-menu__item
-         {:data-clipboard-text expression}
-         "Copy Expression"]]
-       (if (and (some? output) (not= "" output))
-         [clipboard
-          [:li.mdl-menu__item
-           {:data-clipboard-text output}
-           "Copy Output"]]
-         [:li.mdl-menu__item
-          {:disabled true}
-          "Copy Output"])
-       [clipboard
-        [:li.mdl-menu__item
-         {:data-clipboard-text value}
-         "Copy Result"]]]]]
+    [history-card-menu props history-item]
     [:div.card-data.expression
      [:code
       (str num " " ns "=> ")
       (syntaxify expression)]]
     [:hr.border]
-    (when (and (some? output) (not= "" output))
-      [:div.output
-       [:div.card-data
-        [:code [:pre output]]]
-       [:hr.border]])
-    [:div.card-data.result
-     (if (some? exception)
-       [:code
-        [:pre exception]]
-       [:code
-        [:pre
-         (if (string? value)
-           value
-           (syntaxify (with-out-str (pprint value))))]])]]])
+
+    (when (seq output)
+      [history-card-output props output])
+
+    [history-card-result props result]]])
 
 (defn history [props]
   (let [state (:state props)]
@@ -186,9 +219,10 @@
     [scroll-on-update
      [:div.history
       [:div.mdl-grid
-       (for [history-item (:history @state)]
-         ^{:key (:num history-item)}
-         [history-card props history-item])]]]))
+       (doall
+        (for [history-item (:history @state)]
+          ^{:key (:num history-item)}
+          [history-card props history-item]))]]]))
 
 (defn input-field [props]
   (let [state (:state props)]
@@ -286,4 +320,5 @@
   (r/render [home-page] (.getElementById js/document "app")))
 
 (defn init! []
+  (repl/replumb-init (:repl-opts @state))
   (mount-root))
