@@ -15,53 +15,39 @@
    [cljs.core.async.macros :refer [go go-loop]]))
 
 (defonce state
-  (atom {:repl-opts repl/default-repl-opts
-         :ns        (repl/current-ns)
-         :input     "(+ 1 2)"
-         :next      0
-         :cursor    0
-         :history   []}))
+  (atom {:ns      "unknown"
+         :input   "(+ 1 2)"
+         :next    0
+         :cursor  0
+         :history (sorted-map)}))
 
-(defn new-eval-in-state [{:keys [next] :as state}]
-  (-> state
-      (assoc :next (inc next))
-      (update :history conj {:num    next
-                             :output []})))
+(defn repl-init-event [state num [ns expression]]
+  (when num
+    (swap! state update-in [:history num] assoc :ns ns :expression expression)))
 
+(defn repl-result-event [state num [ns result]]
+  (if num
+    (swap! state #(-> %
+                      (assoc :ns ns)
+                      (update-in [:history num] assoc :result result)))
+    (swap! state assoc :ns ns)))
 
-(defn repl-init-event [path [ns expression]]
-  (swap! state update-in path assoc :ns ns :expression expression))
+(defn repl-output-event [state num [s]]
+  (when num
+    (swap! state update-in [:history num] update :output conj s)))
 
-(defn repl-result-event [path [ns result]]
-  (swap! state #(-> %
-                    (assoc :ns ns)
-                    (update-in path assoc :result result))))
-
-(defn repl-output-event [path [s]]
-  (swap! state update-in path update :output conj s))
-
-(defn handle-replumb-event [path event]
-  (let [name  (first event)
-        value (rest event)]
-    (condp = name
-      :init   (repl-init-event path value)
-      :result (repl-result-event path value)
-      :print  (repl-output-event path value)
-      (warnf "Unknown repl event: %s" event))))
-
-(defn dispatch-replumb-events [result-chan]
-  (let [ch-num (:next (swap! state new-eval-in-state))
-        path   [:history (dec ch-num)]]
-    (go-loop []
-      (when-let [event (<! result-chan)]
-        (handle-replumb-event path event)
-        (recur)))))
+(defn repl-event [state [name num & value]]
+  (condp = name
+    :init   (repl-init-event state num value)
+    :result (repl-result-event state num value)
+    :print  (repl-output-event state num value)
+    (warnf "Unknown repl event: %s %s" name value)))
 
 (defn eval-str! [expression]
-  (some-> expression
-          (trim)
-          (repl/replumb-async (:repl-opts @state))
-          (dispatch-replumb-events)))
+  (let [{:keys [in]} (:repl @state)
+        expression   (some-> expression trim)]
+    (when (and (some? in) (some? expression))
+      (put! in expression))))
 
 (defn clipboard [child]
   (let [clipboard-atom (atom nil)]
@@ -198,7 +184,7 @@
       [:pre "..."]])])
 
 (defn history-card
-  [{:keys [state] :as props} {:keys [ns num expression result output] :as history-item}]
+  [{:keys [state] :as props} num {:keys [ns expression result output] :as history-item}]
   [:div.mdl-cell.mdl-cell--12-col
    [:div.mdl-card.mdl-shadow--2dp
     [history-card-menu props history-item]
@@ -215,14 +201,14 @@
 
 (defn history [props]
   (let [state (:state props)]
-    ^{:key (:next @state)}
+    ^{:key (count (:history @state))}
     [scroll-on-update
      [:div.history
       [:div.mdl-grid
        (doall
-        (for [history-item (:history @state)]
-          ^{:key (:num history-item)}
-          [history-card props history-item]))]]]))
+        (for [[num history-item] (:history @state)]
+          ^{:key num}
+          [history-card props num history-item]))]]]))
 
 (defn input-field [props]
   (let [state (:state props)]
@@ -321,5 +307,10 @@
   (r/render [home-page] (.getElementById js/document "app")))
 
 (defn init! []
-  (repl/replumb-init (:repl-opts @state))
+  (let [{:keys [in out] :as repl} (repl/repl-chan-pair)]
+    (go-loop []
+      (when-let [event (<! out)]
+        (repl-event state event)
+        (recur)))
+    (swap! state assoc :repl repl))
   (mount-root))

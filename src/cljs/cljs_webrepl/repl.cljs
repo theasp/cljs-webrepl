@@ -23,14 +23,27 @@
 (defn replumb-init [repl-opts]
   (replumb/read-eval-call repl-opts identity "true"))
 
-(defn replumb-async [expression & [repl-opts]]
-  (let [result-chan (chan)
-        repl-opts   (or repl-opts default-repl-opts)
-        print-fn    #(put! result-chan [:print %])
-        result-fn   #(put! result-chan [:result (replumb-repl/current-ns) %])]
+(defn replumb-async [expression repl-opts out num]
+  (let [print-fn  #(put! out [:print num %])
+        result-fn #(put! out [:result num (replumb-repl/current-ns) %])]
     (go
       (binding [cljs.core/*print-newline* true
                 cljs.core/*print-fn*      print-fn]
-        (put! result-chan [:init (replumb-repl/current-ns) expression])
-        (replumb/read-eval-call repl-opts result-fn expression)))
-    result-chan))
+        (put! out [:init num (replumb-repl/current-ns) expression])
+        (replumb/read-eval-call repl-opts result-fn expression)))))
+
+(defn repl-chan-pair
+  ([]
+   (repl-chan-pair default-repl-opts))
+  ([repl-opts]
+   (let [in  (chan)
+         out (chan)]
+     (go
+       (replumb-async "true" repl-opts out nil)
+       (loop [num 0]
+         (when-let [expression (<! in)]
+           (replumb-async expression repl-opts out num)
+           (recur (inc num))))
+       (close! in)
+       (close! out))
+     {:in in :out out})))
