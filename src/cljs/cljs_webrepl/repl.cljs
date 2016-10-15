@@ -20,9 +20,6 @@
 
 (def current-ns replumb-repl/current-ns)
 
-(defn replumb-init [repl-opts]
-  (replumb/read-eval-call repl-opts identity "true"))
-
 (defn replumb-async [expression repl-opts out num]
   (let [print-fn  #(put! out [:print num %])
         result-fn #(put! out [:result num (replumb-repl/current-ns) %])]
