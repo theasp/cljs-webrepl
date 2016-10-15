@@ -12,6 +12,7 @@
                  [com.taoensso/timbre "4.7.4"]
                  [environ "1.1.0"]
                  [figwheel "0.5.8"]
+                 [fipp "0.6.6"]
                  [hiccup "1.0.5"]
                  [lein-doo "0.1.7"]
                  [reagent "0.6.0"]
