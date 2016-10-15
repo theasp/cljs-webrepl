@@ -5,7 +5,7 @@
    [cljs-webrepl.repl :as repl]
    [reagent.core :as r :refer [atom]]
    [reagent.session :as session]
-   [cljs.pprint :refer [pprint]]
+   [fipp.edn :refer [pprint]]
    [cljsjs.clipboard :as clipboard]
    [cljs-webrepl.mdl :as mdl]
    [cljs-webrepl.syntax :refer [syntaxify]]
