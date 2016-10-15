@@ -2,11 +2,11 @@
   (:require
    [clojure.string :as str :refer [blank? trim]]
    [cljs.core.async :refer [chan close! timeout put!]]
-   [cljs-webrepl.repl :as repl]
    [reagent.core :as r :refer [atom]]
    [reagent.session :as session]
    [fipp.edn :refer [pprint]]
    [cljsjs.clipboard :as clipboard]
+   [cljs-webrepl.repl :as repl]
    [cljs-webrepl.mdl :as mdl]
    [cljs-webrepl.syntax :refer [syntaxify]]
    [taoensso.timbre :as timbre
@@ -270,7 +270,7 @@
     [:p
      (str "A ClojureScript browser based REPL")]
     [:p (str "Using ClojureScript version " *clojurescript-version*)]
-   [:h5 "License"]
+    [:h5 "License"]
     [:p
      "Copyright © 2016 Andrew Phillips, Dan Holmsand, Mike Fikes, David Nolen, Rich Hickey, Joel Martin & Contributors"]
     [:p
@@ -302,7 +302,8 @@
           [:div.mdl-layout-spacer]
           [:a.mdl-navigation__link.mdl-navigation__link--icon
            {:href "https://github.com/theasp/cljs-webrepl"}
-           [:i.material-icons "link"][:span "GitHub"]]
+           [:i.material-icons "link"]
+           [:span "GitHub"]]
           [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id "main-menu"}
            [:i.material-icons "more_vert"]]
           [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
