@@ -17,7 +17,6 @@
 (defonce state
   (atom {:ns      "unknown"
          :input   "(+ 1 2)"
-         :next    0
          :cursor  0
          :history (sorted-map)}))
 
