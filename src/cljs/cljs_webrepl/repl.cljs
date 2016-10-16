@@ -20,27 +20,27 @@
 
 (def current-ns replumb-repl/current-ns)
 
-(defn replumb-async [expression repl-opts out num]
-  (let [print-fn  #(put! out [:print num %])
-        result-fn #(put! out [:result num (replumb-repl/current-ns) %])]
+(defn replumb-async [expression repl-opts from-repl num]
+  (let [print-fn  #(put! from-repl [:print num %])
+        result-fn #(put! from-repl [:result num (replumb-repl/current-ns) %])]
     (go
       (binding [cljs.core/*print-newline* true
                 cljs.core/*print-fn*      print-fn]
-        (put! out [:init num (replumb-repl/current-ns) expression])
+        (put! from-repl [:init num (replumb-repl/current-ns) expression])
         (replumb/read-eval-call repl-opts result-fn expression)))))
 
 (defn repl-chan-pair
   ([]
    (repl-chan-pair default-repl-opts))
   ([repl-opts]
-   (let [in  (chan)
-         out (chan)]
+   (let [to-repl   (chan)
+         from-repl (chan)]
      (go
-       (replumb-async "true" repl-opts out nil)
+       (replumb-async "true" repl-opts from-repl nil)
        (loop [num 0]
-         (when-let [expression (<! in)]
-           (replumb-async expression repl-opts out num)
+         (when-let [expression (<! to-repl)]
+           (replumb-async expression repl-opts from-repl num)
            (recur (inc num))))
-       (close! in)
-       (close! out))
-     {:in in :out out})))
+       (close! from-repl)
+       (close! to-repl))
+     {:to-repl to-repl :from-repl from-repl})))

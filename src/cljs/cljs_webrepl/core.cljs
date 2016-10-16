@@ -43,10 +43,10 @@
     (warnf "Unknown repl event: %s %s" name value)))
 
 (defn eval-str! [expression]
-  (let [{:keys [in]} (:repl @state)
-        expression   (some-> expression trim)]
-    (when (and (some? in) (some? expression))
-      (put! in expression))))
+  (let [{:keys [to-repl]} (:repl @state)
+        expression        (some-> expression trim)]
+    (when (and (some? to-repl) (some? expression))
+      (put! to-repl expression))))
 
 (defn clipboard [child]
   (let [clipboard-atom (atom nil)]
@@ -306,9 +306,9 @@
   (r/render [home-page] (.getElementById js/document "app")))
 
 (defn init! []
-  (let [{:keys [in out] :as repl} (repl/repl-chan-pair)]
+  (let [{:keys [to-repl from-repl] :as repl} (repl/repl-chan-pair)]
     (go-loop []
-      (when-let [event (<! out)]
+      (when-let [event (<! from-repl)]
         (repl-event state event)
         (recur)))
     (swap! state assoc :repl repl))
