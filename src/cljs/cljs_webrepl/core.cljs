@@ -232,8 +232,8 @@
      ^{:key is-blank?}
      [mdl/upgrade
       [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-js-ripple-effect.mdl-button--colored
-       (merge (when is-blank? {:disabled true})
-              {:on-click #(eval-input state)})
+       {:disabled is-blank?
+        :on-click #(eval-input state)}
        [:i.material-icons "send"]]]]))
 
 (defn input [props]
