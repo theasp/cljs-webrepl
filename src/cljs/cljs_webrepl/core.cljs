@@ -4,8 +4,7 @@
    [cljs.core.async :refer [chan close! timeout put!]]
    [reagent.core :as r :refer [atom]]
    [reagent.session :as session]
-   [fipp.edn :refer [pprint]]
-   [cljsjs.clipboard :as clipboard]
+   [fipp.edn :as fipp]
    [cljs-webrepl.repl :as repl]
    [cljs-webrepl.mdl :as mdl]
    [cljs-webrepl.syntax :refer [syntaxify]]
@@ -19,6 +18,9 @@
          :input   "(+ 1 2)"
          :cursor  0
          :history (sorted-map)}))
+
+(defn pprint-str [data]
+  (with-out-str (fipp/pprint data)))
 
 (defn repl-init-event [state num [ns expression]]
   (when num
@@ -48,19 +50,10 @@
     (when (and (some? to-repl) (some? expression))
       (put! to-repl expression))))
 
-(defn clipboard [child]
-  (let [clipboard-atom (atom nil)]
-    (r/create-class
-     {:display-name "clipboard-button"
-      :component-did-mount
-      #(let [clipboard (new js/Clipboard (r/dom-node %))]
-         (reset! clipboard-atom clipboard))
-      :component-will-unmount
-      #(when-not (nil? @clipboard-atom)
-         (.destroy @clipboard-atom)
-         (reset! clipboard-atom nil))
-      :reagent-render
-      (fn [child] child)})))
+(defn copy-to-clipboard [txt]
+  (->> (js-obj "dataType" "text/plain" "data" txt)
+       (new js/ClipboardEvent "copy")
+       (js/document.dispatchEvent)))
 
 (defn history-prev [{:keys [cursor history] :as state}]
   (let [c          (count history)
@@ -131,7 +124,9 @@
     :reagent-render      identity}))
 
 (defn pprint-syntax [value]
-  (syntaxify (with-out-str (pprint value))))
+  (-> value
+      (pprint-str)
+      (syntaxify)))
 
 (defn history-card-menu [props {:keys [ns num expression result output] :as history-item}]
   [mdl/upgrade
@@ -143,22 +138,19 @@
      [:li.mdl-menu__item
       {:on-click #(eval-str! expression)}
       "Evaluate Again"]
-     [clipboard
-      [:li.mdl-menu__item
-       {:data-clipboard-text expression}
-       "Copy Expression"]]
+     [:li.mdl-menu__item
+      {:on-click #(copy-to-clipboard (pprint-str output))}
+      "Copy Expression"]
      (if (seq output)
-       [clipboard
-        [:li.mdl-menu__item
-         {:data-clipboard-text "WHOOPS!"}
-         "Copy Output"]]
+       [:li.mdl-menu__item
+        {:data-clipboard-text "WHOOPS!"}
+        "Copy Output"]
        [:li.mdl-menu__item
         {:disabled true}
         "Copy Output"])
-     [clipboard
-      [:li.mdl-menu__item
-       {:data-clipboard-text (:value result)}
-       "Copy Result"]]]]])
+     [:li.mdl-menu__item
+      {:on-click #(copy-to-clipboard (if (string? (:value result)) (:value result) (pprint-str (:value result))))}
+      "Copy Result"]]]])
 
 (defn history-card-output [props output]
   [:div.card-outpu
