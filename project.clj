@@ -82,7 +82,7 @@
                        :omit-source true
                        :cljsbuild
                        {:builds {:app         {:source-paths ["src/cljs" "env/prod/cljs"]
-                                               :compiler     {:optimizations :advanced
+                                               :compiler     {:optimizations :simple
                                                               :pretty-print  false}}
                                  :repl-thread {:source-paths ["src/cljs" "env/prod/cljs"]
                                                :compiler     {:optimizations :simple
