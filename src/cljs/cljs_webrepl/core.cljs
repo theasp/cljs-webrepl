@@ -4,6 +4,7 @@
    [cljs.core.async :refer [chan close! timeout put!]]
    [reagent.core :as r :refer [atom]]
    [reagent.session :as session]
+   [cljsjs.clipboard :as clipboard]
    [fipp.edn :as fipp]
    [cljs-webrepl.repl :as repl]
    [cljs-webrepl.mdl :as mdl]
@@ -50,10 +51,19 @@
     (when (and (some? to-repl) (some? expression))
       (put! to-repl expression))))
 
-(defn copy-to-clipboard [txt]
-  (->> (js-obj "dataType" "text/plain" "data" txt)
-       (new js/ClipboardEvent "copy")
-       (js/document.dispatchEvent)))
+(defn clipboard [child]
+  (let [clipboard-atom (atom nil)]
+    (r/create-class
+     {:display-name "clipboard-button"
+      :component-did-mount
+      #(let [clipboard (new js/Clipboard (r/dom-node %))]
+         (reset! clipboard-atom clipboard))
+      :component-will-unmount
+      #(when-not (nil? @clipboard-atom)
+         (.destroy @clipboard-atom)
+         (reset! clipboard-atom nil))
+      :reagent-render
+      (fn [child] child)})))
 
 (defn history-prev [{:keys [cursor history] :as state}]
   (let [c          (count history)
@@ -138,19 +148,22 @@
      [:li.mdl-menu__item
       {:on-click #(eval-str! expression)}
       "Evaluate Again"]
-     [:li.mdl-menu__item
-      {:on-click #(copy-to-clipboard (pprint-str output))}
-      "Copy Expression"]
+     [clipboard
+      [:li.mdl-menu__item
+       {:data-clipboard-text expression}
+       "Copy Expression"]]
      (if (seq output)
-       [:li.mdl-menu__item
-        {:data-clipboard-text "WHOOPS!"}
-        "Copy Output"]
+       [clipboard
+        [:li.mdl-menu__item
+         {:data-clipboard-text "WHOOPS!"}
+         "Copy Output"]]
        [:li.mdl-menu__item
         {:disabled true}
         "Copy Output"])
-     [:li.mdl-menu__item
-      {:on-click #(copy-to-clipboard (if (string? (:value result)) (:value result) (pprint-str (:value result))))}
-      "Copy Result"]]]])
+     [clipboard
+      [:li.mdl-menu__item
+       {:data-clipboard-text (:value result)}
+       "Copy Result"]]]]])
 
 (defn history-card-output [props output]
   [:div.card-outpu
