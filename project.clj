@@ -55,8 +55,7 @@
 
   :profiles {:dev
              {:plugins   [[lein-figwheel "0.5.8"]
-                          [lein-doo "0.1.6"]
-                          [com.cemerick/austin "0.1.6"]]
+                          [lein-doo "0.1.6"]]
 
               :figwheel  {:http-server-root "public"
                           :server-port      3449
