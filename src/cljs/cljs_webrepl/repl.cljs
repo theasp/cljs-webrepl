@@ -20,14 +20,40 @@
 
 (def current-ns replumb-repl/current-ns)
 
-(defn replumb-async [expression repl-opts from-repl num]
-  (let [print-fn  #(put! from-repl [:print num %])
-        result-fn #(put! from-repl [:result num (replumb-repl/current-ns) %])]
-    (go
-      (binding [cljs.core/*print-newline* true
-                cljs.core/*print-fn*      print-fn]
-        (put! from-repl [:init num (replumb-repl/current-ns) expression])
-        (replumb/read-eval-call repl-opts result-fn expression)))))
+
+(defn err->map [err]
+  (when err
+    (errorf "Evaluation: %s" err)
+    {:message (.-message err)
+     :data    (.-data err)}))
+
+(defn fix-result [result]
+  (-> result
+      (update :error err->map)))
+
+(defn on-repl-eval [[num expression] from-repl repl-opts]
+  (debugf "About to eval: %s %s %s" num expression from-repl)
+
+  (put! from-repl [:repl/eval num (replumb-repl/current-ns) expression])
+
+  (let [print-fn  #(put! from-repl [:repl/print num %])
+        result-fn #(put! from-repl [:repl/result num (replumb-repl/current-ns) (fix-result %)])]
+    (binding [cljs.core/*print-newline* true
+              cljs.core/*print-fn*      print-fn]
+      ;; Use the 3rd argument to put! so the :init event is sent first
+      (replumb/read-eval-call repl-opts result-fn expression))))
+
+(defn repl-loop [from-repl to-repl repl-opts]
+  (go
+    (put! to-repl [:repl/eval nil "true"])
+    (loop []
+      (when-let [msg (<! to-repl)]
+        (condp = (first msg)
+          :repl/eval (on-repl-eval (rest msg) from-repl repl-opts)
+          (warnf "Unknown REPL input event: %s" msg))
+        (recur)))
+    (close! from-repl)
+    (close! to-repl)))
 
 (defn repl-chan-pair
   ([]
@@ -35,12 +61,5 @@
   ([repl-opts]
    (let [to-repl   (chan)
          from-repl (chan)]
-     (go
-       (replumb-async "true" repl-opts from-repl nil)
-       (loop [num 0]
-         (when-let [expression (<! to-repl)]
-           (replumb-async expression repl-opts from-repl num)
-           (recur (inc num))))
-       (close! from-repl)
-       (close! to-repl))
+     (repl-loop from-repl to-repl repl-opts)
      {:to-repl to-repl :from-repl from-repl})))

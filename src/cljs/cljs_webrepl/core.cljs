@@ -4,9 +4,9 @@
    [cljs.core.async :refer [chan close! timeout put!]]
    [reagent.core :as r :refer [atom]]
    [reagent.session :as session]
-   [cljsjs.clipboard :as clipboard]
    [fipp.edn :as fipp]
    [cljs-webrepl.repl :as repl]
+   [cljs-webrepl.repl-thread :as repl-thread]
    [cljs-webrepl.mdl :as mdl]
    [cljs-webrepl.syntax :refer [syntaxify]]
    [taoensso.timbre :as timbre
@@ -14,36 +14,76 @@
   (:require-macros
    [cljs.core.async.macros :refer [go go-loop]]))
 
-(defonce state
-  (atom {:ns      "unknown"
-         :input   "(+ 1 2)"
-         :cursor  0
-         :history (sorted-map)}))
+(def default-state
+  {:ns      nil
+   :input   ""
+   :cursor  0
+   :history (sorted-map)})
+
+(defonce state (atom default-state))
 
 (defn pprint-str [data]
   (with-out-str (fipp/pprint data)))
 
-(defn repl-init-event [state num [ns expression]]
+(defn on-repl-eval [state num [ns expression]]
   (when num
     (swap! state update-in [:history num] assoc :ns ns :expression expression)))
 
-(defn repl-result-event [state num [ns result]]
+(defn on-repl-result [state num [ns result]]
   (if num
     (swap! state #(-> %
                       (assoc :ns ns)
                       (update-in [:history num] assoc :result result)))
     (swap! state assoc :ns ns)))
 
-(defn repl-output-event [state num [s]]
+(defn on-repl-print [state num [s]]
   (when num
     (swap! state update-in [:history num] update :output conj s)))
 
-(defn repl-event [state [name num & value]]
+(defn on-repl-error [state num [err]]
+  (when num
+    (swap! state update-in [:history num] assoc :error err)))
+
+(defn on-repl-event [state [name num & value]]
   (condp = name
-    :init   (repl-init-event state num value)
-    :result (repl-result-event state num value)
-    :print  (repl-output-event state num value)
+    :repl/eval   (on-repl-eval state num value)
+    :repl/result (on-repl-result state num value)
+    :repl/error  (on-repl-error state num value)
+    :repl/print  (on-repl-print state num value)
     (warnf "Unknown repl event: %s %s" name value)))
+
+(defn repl-event-loop [state from-repl]
+  (go-loop []
+    (when-let [event (<! from-repl)]
+      (debugf "REPL Event: %s" event)
+      (on-repl-event state event)
+      (recur))))
+
+(defn repl-eval-loop [to-eval to-repl from-repl]
+  (go-loop [num 0]
+    (when-let [expression (<! to-eval)]
+      (put! from-repl [:repl/eval num (:ns @state) expression])
+      (put! to-repl [:repl/eval num expression])
+      (recur (inc num)))
+    (close! to-eval)
+    (close! to-repl)))
+
+(defn reset-repl! [state]
+  (debugf "Resetting REPL")
+  (when-let [repl (:repl @state)]
+    (close! (:from-repl repl))
+    (close! (:to-repl repl)))
+
+  (let [{:keys [to-repl from-repl]} (repl-thread/repl-thread)
+        to-eval                     (chan)]
+    (repl-event-loop state from-repl)
+    (repl-eval-loop to-eval to-repl from-repl)
+    (swap! state #(-> %
+                      (merge default-state)
+                      (assoc :repl {:to-repl   to-eval
+                                    :from-repl from-repl})))))
+
+
 
 (defn eval-str! [expression]
   (let [{:keys [to-repl]} (:repl @state)
@@ -51,19 +91,10 @@
     (when (and (some? to-repl) (some? expression))
       (put! to-repl expression))))
 
-(defn clipboard [child]
-  (let [clipboard-atom (atom nil)]
-    (r/create-class
-     {:display-name "clipboard-button"
-      :component-did-mount
-      #(let [clipboard (new js/Clipboard (r/dom-node %))]
-         (reset! clipboard-atom clipboard))
-      :component-will-unmount
-      #(when-not (nil? @clipboard-atom)
-         (.destroy @clipboard-atom)
-         (reset! clipboard-atom nil))
-      :reagent-render
-      (fn [child] child)})))
+(defn copy-to-clipboard [txt]
+  (->> (js-obj "dataType" "text/plain" "data" txt)
+       (new js/ClipboardEvent "copy")
+       (js/document.dispatchEvent)))
 
 (defn history-prev [{:keys [cursor history] :as state}]
   (let [c          (count history)
@@ -71,7 +102,7 @@
     (if (<= new-cursor c)
       (assoc state
              :cursor new-cursor
-             :input (:expression (nth history (- c new-cursor))))
+             :input (:expression (get history (- c new-cursor))))
       state)))
 
 (defn history-next [{:keys [cursor history] :as state}]
@@ -80,7 +111,7 @@
     (if (> new-cursor 0)
       (assoc state
              :cursor new-cursor
-             :input (:expression (nth history (- c new-cursor))))
+             :input (:expression (get history (- c new-cursor))))
       state)))
 
 (defn clear-input [state]
@@ -138,7 +169,7 @@
       (pprint-str)
       (syntaxify)))
 
-(defn history-card-menu [props {:keys [ns num expression result output] :as history-item}]
+(defn history-card-menu [props num {:keys [ns expression result output] :as history-item}]
   [mdl/upgrade
    [:div.mdl-card__menu
     [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id (str "menu-" num)}
@@ -148,25 +179,22 @@
      [:li.mdl-menu__item
       {:on-click #(eval-str! expression)}
       "Evaluate Again"]
-     [clipboard
-      [:li.mdl-menu__item
-       {:data-clipboard-text expression}
-       "Copy Expression"]]
+     [:li.mdl-menu__item
+      {:on-click #(copy-to-clipboard (pprint-str output))}
+      "Copy Expression"]
      (if (seq output)
-       [clipboard
-        [:li.mdl-menu__item
-         {:data-clipboard-text "WHOOPS!"}
-         "Copy Output"]]
+       [:li.mdl-menu__item
+        {:data-clipboard-text "WHOOPS!"}
+        "Copy Output"]
        [:li.mdl-menu__item
         {:disabled true}
         "Copy Output"])
-     [clipboard
-      [:li.mdl-menu__item
-       {:data-clipboard-text (:value result)}
-       "Copy Result"]]]]])
+     [:li.mdl-menu__item
+      {:on-click #(copy-to-clipboard (if (string? (:value result)) (:value result) (pprint-str (:value result))))}
+      "Copy Result"]]]])
 
 (defn history-card-output [props output]
-  [:div.card-outpu
+  [:div.card-output
    [:div.card-data
     (into [:pre.line]
           (for [line output]
@@ -191,7 +219,7 @@
   [{:keys [state] :as props} num {:keys [ns expression result output] :as history-item}]
   [:div.mdl-cell.mdl-cell--12-col
    [:div.mdl-card.mdl-shadow--2dp
-    [history-card-menu props history-item]
+    [history-card-menu props num history-item]
     [:div.card-data.expression
      [:code
       (str num " " ns "=> ")
@@ -203,41 +231,54 @@
 
     [history-card-result props result]]])
 
-(defn history [props]
-  (let [state (:state props)]
-    ^{:key (count (:history @state))}
-    [scroll-on-update
-     [:div.history
-      [:div.mdl-grid
-       (doall
-        (for [[num history-item] (:history @state)]
-          ^{:key num}
-          [history-card props num history-item]))]]]))
+(defn please-wait [props]
+  [:div.history
+   [:div.mdl-grid
+    [:div.mdl-cell.mdl-cell--12-col
+     [:p "REPL initializing..."]]]])
+
+(defn history [{:keys [state] :as props}]
+  ^{:key (count (:history @state))}
+  [scroll-on-update
+   [:div.history
+    [:div.mdl-grid
+     (doall
+      (for [[num history-item] (:history @state)]
+        ^{:key num}
+        [history-card props num history-item]))]]])
 
 (defn input-field [props]
-  (let [state (:state props)]
+  (let [state              (:state props)
+        {:keys [ns input]} @state
+        is-init?           (some? ns)
+        ns                 (or ns "unknown")]
     [:div.input-field
-     [:form {:action "#" :autoComplete "off"}
+     [:form {:action "#" "autoComplete" "off"}
       [mdl/upgrade
        [:div.wide.mdl-textfield.mdl-js-textfield.mdl-textfield--floating-label
         [:input.wide.mdl-textfield__input
          {:type         :text
           :id           "input"
           :autocomplete "off"
-          :value        (:input @state)
+          :value        input
+          :disabled     (not is-init?)
           :on-change    #(swap! state input-on-change %)
           :on-key-down  #(input-key-down state %)}]
+        ^{:key is-init?}
         [:label.mdl-textfield__label {:for "input"}
-         (str (:ns @state) "=>")]]]]]))
+         (str ns "=>")]]]]]))
 
 (defn run-button [props]
-  (let [state     (:state props)
-        is-blank? (blank? (:input @state))]
+  (let [state              (:state props)
+        {:keys [ns input]} @state
+        is-init?           (some? ns)
+        is-blank?          (blank? input)
+        is-disabled?       (or (not is-init?) is-blank?)]
     [:div.padding-left
-     ^{:key is-blank?}
+     ^{:key is-disabled?}
      [mdl/upgrade
       [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-js-ripple-effect.mdl-button--colored
-       {:disabled is-blank?
+       {:disabled is-disabled?
         :on-click #(eval-input state)}
        [:i.material-icons "send"]]]]))
 
@@ -299,22 +340,22 @@
           [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
            {:for "main-menu"}
            [:li.mdl-menu__item
+            {:on-click #(reset-repl! state)}
+            "Reset REPL"]
+           [:li.mdl-menu__item
             {:on-click #(set! (.-location js/window) "https://github.com/theasp/cljs-webrepl")}
             "GitHub"]
            [:li.mdl-menu__item
             {:on-click show-about-dialog}
             "About"]]]]
-        [history props]
+        (if (:ns @state)
+          [history props]
+          [please-wait props])
         [input props]]]]]))
 
 (defn mount-root []
   (r/render [home-page] (.getElementById js/document "app")))
 
 (defn init! []
-  (let [{:keys [to-repl from-repl] :as repl} (repl/repl-chan-pair)]
-    (go-loop []
-      (when-let [event (<! from-repl)]
-        (repl-event state event)
-        (recur)))
-    (swap! state assoc :repl repl))
+  (reset-repl! state)
   (mount-root))

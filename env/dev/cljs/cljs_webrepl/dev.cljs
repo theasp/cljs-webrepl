@@ -5,7 +5,7 @@
 (enable-console-print!)
 
 (figwheel/watch-and-reload
- :websocket-url    "ws://localhost:3449/figwheel-ws"
+ :websocket-url    "wss://figwheel.industrial.gt0.ca/figwheel-ws"
  :jsload-callback core/mount-root)
 
 (core/init!)
