@@ -283,13 +283,34 @@
         :on-click #(eval-input state)}
        [:i.material-icons "send"]]]]))
 
-(defn input [props]
+(defn repl-input [props]
   [:div.input
    [:div.mdl-grid.mdl-shadow--2dp.white-bg
     [:div.mdl-cell--12-col
      [:div.flex-h
       [input-field props]
       [run-button props]]]]])
+
+(defn input-card [{:keys [state] :as props} num]
+  [:div.mdl-cell.mdl-cell--12-col
+   [:div.mdl-card.mdl-shadow--2dp
+    [repl-input props]]])
+
+(defn input-ok? [{:keys [history]}]
+  (or (= (count history) 0)
+      (some? (-> history last second :result))))
+
+(defn history [props]
+  ^{:key (count (:history @state))}
+  [scroll-on-update
+   [:div.history
+    [:div.mdl-grid
+     (doall
+      (for [[num history-item] (:history @state)]
+        ^{:key num}
+        [history-card props num history-item]))
+     (when (input-ok? @state)
+       [input-card props])]]])
 
 (defn close-about-dialog []
   (when-let [dialog (.querySelector js/document "#about-dialog")]
@@ -352,8 +373,7 @@
             "About"]]]]
         (if (:ns @state)
           [history props]
-          [please-wait props])
-        [input props]]]]]))
+          [please-wait props])]]]]))
 
 (defn mount-root []
   (r/render [home-page] (.getElementById js/document "app")))
