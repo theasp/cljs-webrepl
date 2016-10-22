@@ -332,10 +332,11 @@
            [:img.svg-size {:src "images/cljs-white.svg"}]
            " CLJS-WebREPL"]
           [:div.mdl-layout-spacer]
-          [:a.mdl-navigation__link.mdl-navigation__link--icon
-           {:href "https://github.com/theasp/cljs-webrepl"}
-           [:i.material-icons "link"]
-           [:span "GitHub"]]
+          [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
+           {:on-click #(reset-repl! state)
+            :style    {:color "#fff"}}
+           [:i.material-icons "report"]
+           [:span "RESET"]]
           [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id "main-menu"}
            [:i.material-icons "more_vert"]]
           [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
