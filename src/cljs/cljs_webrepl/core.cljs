@@ -18,11 +18,35 @@
 (def default-state
   {:repl    nil
    :ns      nil
+   :columns 1
    :input   ""
    :cursor  0
    :history (sorted-map)})
 
 (defonce state (atom default-state))
+
+(def max-columns 4)
+
+(defn card-columns-class [columns]
+  (when (< 0 columns (inc max-columns))
+    (let [desktop (js/Math.floor (/ 12 columns))
+          tablet  (js/Math.floor (/ 8 columns))
+          phone   (js/Math.floor (/ 6 columns))]
+      (str "mdl-cell--" desktop "-col "
+           "mdl-cell--" tablet "-col-tablet "
+           "mdl-cell--" phone "-col-phone "))))
+
+(defn more-columns [state]
+  (let [columns (inc (:columns state))]
+    (if (< columns (inc max-columns))
+      (assoc state :columns columns)
+      state)))
+
+(defn less-columns [state]
+  (let [columns (dec (:columns state))]
+    (if (< 0 columns)
+      (assoc state :columns columns)
+      state)))
 
 (defn pprint-str [data]
   (with-out-str (fipp/pprint data)))
@@ -242,8 +266,9 @@
       [:pre "..."]])])
 
 (defn history-card
-  [{:keys [state] :as props} num {:keys [ns expression result output] :as history-item}]
-  [:div.mdl-cell.mdl-cell--12-col
+  [{:keys [state columns] :as props} num {:keys [ns expression result output] :as history-item}]
+  [:div
+   {:class (str "mdl-cell " (card-columns-class columns))}
    [:div.mdl-card.mdl-shadow--2dp
     [history-card-menu props num history-item]
     [:div.card-data.expression
@@ -328,16 +353,35 @@
      (when (input-ok? @state)
        [input-card props])]]])
 
-(defn close-about-dialog []
-  (when-let [dialog (.querySelector js/document "#about-dialog")]
-    (.close dialog)))
+(defn close-dialog [id]
+  (some-> (.querySelector js/document id)
+          (.close)))
+
+(defn show-dialog [id]
+  (when-let [dialog (.querySelector js/document id)]
+    (when-not (.-showModal dialog)
+      (.registerDialog js/dialogPolyfill dialog))
+    (.showModal dialog)))
+
+(defn reset-dialog [state]
+  [:dialog.mdl-dialog {:id "reset-dialog"}
+   [:div.mdl-dialog__content
+    [:p "Reset REPL? All data will be lost."]]
+   [:div.mdl-dialog__actions
+    [:button.mdl-button
+     {:on-click (fn []
+                  (close-dialog "#reset-dialog")
+                  (reset-repl! state))}
+     "Reset"]
+    [:button.mdl-button
+     {:on-click #(close-dialog "#reset-dialog")}
+     "Cancel"]]])
 
 (defn about-dialog []
-  [:dialog.mdl-dialog {:id "about-dialog"}
+  [:dialog.mdl-dialog.mdl-dialog__wide {:id "about-dialog"}
    [:h4.mdl-dialog__title "CLJS-WebREPL"]
    [:div.mdl-dialog__content
-    [:p
-     (str "A ClojureScript browser based REPL")]
+    [:p "A ClojureScript browser based REPL"]
     [:p (str "Using ClojureScript version " *clojurescript-version*)]
     [:h5 "License"]
     [:p
@@ -346,47 +390,56 @@
      "Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version."]]
    [:div.mdl-dialog__actions
     [:button.mdl-button
-     {:on-click close-about-dialog}
+     {:on-click #(close-dialog "#about-dialog")}
      "Ok"]]])
 
-(defn show-about-dialog []
-  (when-let [dialog (.querySelector js/document "#about-dialog")]
-    (when-not (.-showModal dialog)
-      (.registerDialog js/dialogPolyfill dialog))
-    (.showModal dialog)))
+
+(defn home-page-header [{:keys [columns state] :as props}]
+  [:header.mdl-layout__header
+   [:div.mdl-layout__header-row
+    [:span.mdl-layout-title
+     [:img.svg-size {:src "images/cljs-white.svg"}]
+     " CLJS-WebREPL"]
+    [:div.mdl-layout-spacer]
+    [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
+     {:on-click #(show-dialog "#reset-dialog")
+      :style    {:color "#fff"}}
+     [:i.material-icons "report"]
+     [:span "RESET"]]
+    [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
+     {:on-click #(swap! state more-columns)
+      :style    {:color "#fff"}}
+     [:i.material-icons "view_column"]]
+    [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
+     {:on-click #(swap! state less-columns)
+      :style    {:color "#fff"}}
+     [:i.material-icons "view_stream"]]
+    [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id "main-menu"}
+     [:i.material-icons "more_vert"]]
+    [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
+     {:for "main-menu"}
+     [:li.mdl-menu__item
+      {:on-click #(show-dialog "#reset-dialog")}
+      "Reset REPL"]
+     [:li.mdl-menu__item
+      {:on-click #(set! (.-location js/window) "https://github.com/theasp/cljs-webrepl")}
+      "GitHub"]
+     [:li.mdl-menu__item
+      {:on-click #(show-dialog "#about-dialog")}
+      "About"]]]])
 
 (defn home-page []
-  (let [props {:state state
-               :title "Cljs-WebREPL"}]
+  (let [columns (:columns @state)
+        props   {:state   state
+                 :columns columns
+                 :title   "Cljs-WebREPL"}]
     [:div
      [about-dialog]
+     [reset-dialog state]
      [:div.tall
       [mdl/upgrade
        [:div.flex-v.tall.mdl-layout.mdl-js-layout.mdl-layout--fixed-header.mdl-layout--no-drawer-button
-        [:header.mdl-layout__header
-         [:div.mdl-layout__header-row
-          [:span.mdl-layout-title
-           [:img.svg-size {:src "images/cljs-white.svg"}]
-           " CLJS-WebREPL"]
-          [:div.mdl-layout-spacer]
-          [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
-           {:on-click #(reset-repl! state)
-            :style    {:color "#fff"}}
-           [:i.material-icons "report"]
-           [:span "RESET"]]
-          [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id "main-menu"}
-           [:i.material-icons "more_vert"]]
-          [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
-           {:for "main-menu"}
-           [:li.mdl-menu__item
-            {:on-click #(reset-repl! state)}
-            "Reset REPL"]
-           [:li.mdl-menu__item
-            {:on-click #(set! (.-location js/window) "https://github.com/theasp/cljs-webrepl")}
-            "GitHub"]
-           [:li.mdl-menu__item
-            {:on-click show-about-dialog}
-            "About"]]]]
+        [home-page-header props]
         (if (:ns @state)
           [history props]
           [please-wait props])]]]]))
