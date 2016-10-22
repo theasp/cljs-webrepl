@@ -26,6 +26,15 @@
 (defn pprint-str [data]
   (with-out-str (fipp/pprint data)))
 
+(defn trigger
+  "Returns a reagent class that can be used to easily add triggers
+  from the map in `props`, such as :component-did-mount.  See
+  `reagent.core/create-class` for more information."
+  [props content]
+  (r/create-class
+   (-> {:display-name "trigger"}
+       (merge props)
+       (assoc :reagent-render (fn [_ content] content)))))
 
 (defn clipboard [child]
   (let [clipboard-atom (atom nil)]
@@ -39,6 +48,10 @@
                                   (.destroy @clipboard-atom)
                                   (reset! clipboard-atom nil)))
       :reagent-render         (fn [child] child)})))
+
+(defn focus-node [node]
+  (-> (r/dom-node node)
+      (.focus)))
 
 (defn on-repl-eval [state num [ns expression]]
   (when num
@@ -271,14 +284,16 @@
      [:form {:action "#" "autoComplete" "off"}
       [mdl/upgrade
        [:div.wide.mdl-textfield.mdl-js-textfield.mdl-textfield--floating-label
-        [:input.wide.mdl-textfield__input
-         {:type         :text
-          :id           "input"
-          :autocomplete "off"
-          :value        input
-          :disabled     (not is-init?)
-          :on-change    #(swap! state input-on-change %)
-          :on-key-down  #(input-key-down state %)}]
+        [trigger
+         {:component-did-mount focus-node}
+         [:input.wide.mdl-textfield__input
+          {:type         :text
+           :id           "input"
+           :autocomplete "off"
+           :value        input
+           :disabled     (not is-init?)
+           :on-change    #(swap! state input-on-change %)
+           :on-key-down  #(input-key-down state %)}]]
         ^{:key is-init?}
         [:label.mdl-textfield__label {:for "input"}
          (str ns "=>")]]]]]))
