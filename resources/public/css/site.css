@@ -45,7 +45,7 @@ code.line:before{
   word-break: break-all;
 } */
 
-.mdl-dialog {
+.mdl-dialog__wide {
   min-width: 280px;
   width: 280px;
   width: calc(50%);
