@@ -16,7 +16,8 @@
    [cljs.core.async.macros :refer [go go-loop]]))
 
 (def default-state
-  {:ns      nil
+  {:repl    nil
+   :ns      nil
    :input   ""
    :cursor  0
    :history (sorted-map)})
@@ -66,7 +67,7 @@
 
 (defn on-repl-print [state num [s]]
   (when num
-    (swap! state update-in [:history num] update :output conj s)))
+    (swap! state update-in [:history num] update :output str s)))
 
 (defn on-repl-error [state num [err]]
   (when num
@@ -96,22 +97,22 @@
     (close! to-repl)))
 
 (defn reset-repl! [state]
-  (when-let [repl (:repl @state)]
-    (close! (:from-repl repl))
-    (close! (:to-repl repl)))
+  (when-let [{:keys [from-repl to-repl]} (:repl @state)]
+    (close! from-repl)
+    (close! to-repl))
 
   (let [{:keys [to-repl from-repl]} (repl-thread/repl-thread)
         to-eval                     (chan)]
-    (repl-event-loop state from-repl)
-    (repl-eval-loop to-eval to-repl from-repl)
     (swap! state #(-> %
                       (merge default-state)
                       (assoc :repl {:to-repl   to-eval
-                                    :from-repl from-repl})))))
+                                    :from-repl from-repl})))
+    (repl-event-loop state from-repl)
+    (repl-eval-loop to-eval to-repl from-repl)))
 
 (defn eval-str! [expression]
   (let [{:keys [to-repl]} (:repl @state)
-        expression        (some-> expression trim)]
+        expression        (some-> expression str/trim)]
     (when (and (some? to-repl) (some? expression))
       (put! to-repl expression))))
 
@@ -222,7 +223,7 @@
   [:div.card-output
    [:div.card-data
     (into [:pre.line]
-          (for [line output]
+          (for [line (str/split output #"\n")]
             [:code.line line]))]
    [:hr.border]])
 
@@ -261,16 +262,6 @@
    [:div.mdl-grid
     [:div.mdl-cell.mdl-cell--12-col
      [:p "REPL initializing..."]]]])
-
-(defn history [{:keys [state] :as props}]
-  ^{:key (count (:history @state))}
-  [scroll-on-update
-   [:div.history
-    [:div.mdl-grid
-     (doall
-      (for [[num history-item] (:history @state)]
-        ^{:key num}
-        [history-card props num history-item]))]]])
 
 (defn input-field [props]
   (let [state              (:state props)
