@@ -25,6 +25,10 @@ pre, code {
   width:100%; overflow-x:auto;
 }
 
+code.card {
+  padding: 16px;
+}
+
 pre.line {
     counter-reset: line;
 }
@@ -38,12 +42,6 @@ code.line:before{
     padding-right: 8px;
 }
 
-/* pre, code {
-  color: #000000;
-  font-family: 'Roboto Mono', 'Courier New', monospace;
-  word-wrap: break-word;
-  word-break: break-all;
-} */
 
 .mdl-dialog__wide {
   min-width: 280px;

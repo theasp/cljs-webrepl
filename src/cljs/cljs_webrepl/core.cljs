@@ -88,7 +88,7 @@
                             (debugf "Highlighting")
                             (.highlightBlock js/hljs (r/dom-node node)))
     :component-did-update (fn [node old-argv] (.highlightBlock (r/dom-node node)))
-    :reagent-render       (fn [txt] [:code.clojure txt])}))
+    :reagent-render       (fn [txt] [:code.card.clojure txt])}))
 
 (defn focus-node [node]
   (-> (r/dom-node node)
@@ -261,14 +261,14 @@
    [:hr.border]])
 
 (defn history-card-result [props {:keys [success? value error] :as result}]
-  [:div.card-data.result
-   (if (some? result)
-     (if success?
-       (if (string? value)
-         (str "String: " value)
-         [highlight-clj (pprint-str value)])
-       [highlight-clj (pprint-str value)])
-     [:code "..."])])
+  [:div.card-data.result]
+  (if result
+    (if success?
+      (if (string? value)
+        [highlight-clj (str "\"" value "\"")]
+        [highlight-clj (pprint-str value)])
+      [highlight-clj (pprint-str error)])
+    [:code "..."]))
 
 (defn history-card
   [{:keys [state columns] :as props} {:keys [num ns expression result output] :as history-item}]
@@ -276,8 +276,7 @@
    {:class (str "mdl-cell " (card-size-class columns))}
    [:div.mdl-card.mdl-shadow--2dp
     [history-card-menu props num history-item]
-    [:div.card-data.expression
-     [highlight-clj (str ";; " ns "=>\n" expression)]]
+    [highlight-clj (str ";; " ns "\n" expression)]
     [:hr.border]
 
     (when (seq output)
