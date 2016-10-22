@@ -10,6 +10,7 @@
                  [com.taoensso/timbre "4.7.4"]
                  [cljsjs/clipboard "1.5.9-0"]
                  [cljsjs/material "1.2.1-0"]
+                 [cljsjs/highlight "9.6.0-0"]
                  [environ "1.1.0"]
                  [figwheel "0.5.8"]
                  [fipp "0.6.6"]

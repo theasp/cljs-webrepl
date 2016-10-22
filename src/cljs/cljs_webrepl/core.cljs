@@ -3,13 +3,14 @@
    [clojure.string :as str]
    [cljs.core.async :refer [chan close! timeout put!]]
    [cljsjs.clipboard :as clipboard]
+   [cljsjs.highlight]
+   [cljsjs.highlight.langs.clojure]
    [reagent.core :as r :refer [atom]]
    [reagent.session :as session]
    [fipp.edn :as fipp]
    [cljs-webrepl.repl :as repl]
    [cljs-webrepl.repl-thread :as repl-thread]
    [cljs-webrepl.mdl :as mdl]
-   [cljs-webrepl.syntax :refer [syntaxify]]
    [taoensso.timbre :as timbre
     :refer-macros (tracef debugf infof warnf errorf)])
   (:require-macros
@@ -79,6 +80,15 @@
                                   (.destroy @clipboard-atom)
                                   (reset! clipboard-atom nil)))
       :reagent-render         (fn [child] child)})))
+
+(defn highlight-clj [txt]
+  (r/create-class
+   {:display-name         "highlight-clj"
+    :component-did-mount  (fn [node]
+                            (debugf "Highlighting")
+                            (.highlightBlock js/hljs (r/dom-node node)))
+    :component-did-update (fn [node old-argv] (.highlightBlock (r/dom-node node)))
+    :reagent-render       (fn [txt] [:code.clojure txt])}))
 
 (defn focus-node [node]
   (-> (r/dom-node node)
@@ -213,11 +223,6 @@
     :component-did-mount scroll
     :reagent-render      identity}))
 
-(defn pprint-syntax [value]
-  (-> value
-      (pprint-str)
-      (syntaxify)))
-
 (defn history-card-menu [props num {:keys [ns expression result output] :as history-item}]
   [mdl/upgrade
    [:div.mdl-card__menu
@@ -259,15 +264,11 @@
   [:div.card-data.result
    (if (some? result)
      (if success?
-       [:code
-        [:pre
-         (if (string? value)
-           value
-           (pprint-syntax value))]]
-       [:code
-        [:pre (pprint-syntax error)]])
-     [:code
-      [:pre "..."]])])
+       (if (string? value)
+         (str "String: " value)
+         [highlight-clj (pprint-str value)])
+       [highlight-clj (pprint-str value)])
+     [:code "..."])])
 
 (defn history-card
   [{:keys [state columns] :as props} {:keys [num ns expression result output] :as history-item}]
@@ -276,9 +277,7 @@
    [:div.mdl-card.mdl-shadow--2dp
     [history-card-menu props num history-item]
     [:div.card-data.expression
-     [:code
-      (str ns "=> ")
-      (syntaxify expression)]]
+     [highlight-clj (str ";; " ns "=>\n" expression)]]
     [:hr.border]
 
     (when (seq output)

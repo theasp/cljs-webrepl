@@ -139,10 +139,10 @@ hr.border {
   padding-right: 16px;
 }
 
-.expression, .padding-top {
+.result, .expression, .padding-top {
   padding-top: 16px;
 }
 
-.expression, .padding-bottom {
+.result, .expression, .padding-bottom {
   padding-bottom: 16px;
 }
