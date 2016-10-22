@@ -30,7 +30,7 @@
         writer     (t/writer :json)
 
         finally-fn (fn []
-                     (debugf "Cleaning up WebWorker (thread? %s)" (worker?))
+                     (debugf "Cleaning up WebWorker (worker thread? %s)" (worker?))
                      (close! input-ch)
                      (close! output-ch)
                      (when close-fn
@@ -54,10 +54,8 @@
       (loop []
         (when-let [msg (<! input-ch)]
           (try
-            (debugf "Sending: %s" msg)
             (.postMessage target (serialzie writer msg))
             (catch js/Error e
-              (debugf "!!!")
               (.postMessage target (serialzie writer [:webworker/error nil (str e)]))))
           (recur)))
       (finally-fn))

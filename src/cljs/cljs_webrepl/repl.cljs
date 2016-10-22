@@ -32,8 +32,6 @@
       (update :error err->map)))
 
 (defn on-repl-eval [[num expression] from-repl repl-opts]
-  (debugf "About to eval: %s %s %s" num expression from-repl)
-
   (put! from-repl [:repl/eval num (replumb-repl/current-ns) expression])
 
   (let [print-fn  #(put! from-repl [:repl/print num %])

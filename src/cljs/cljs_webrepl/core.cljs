@@ -55,7 +55,6 @@
 (defn repl-event-loop [state from-repl]
   (go-loop []
     (when-let [event (<! from-repl)]
-      (debugf "REPL Event: %s" event)
       (on-repl-event state event)
       (recur))))
 
@@ -69,7 +68,6 @@
     (close! to-repl)))
 
 (defn reset-repl! [state]
-  (debugf "Resetting REPL")
   (when-let [repl (:repl @state)]
     (close! (:from-repl repl))
     (close! (:to-repl repl)))
@@ -82,8 +80,6 @@
                       (merge default-state)
                       (assoc :repl {:to-repl   to-eval
                                     :from-repl from-repl})))))
-
-
 
 (defn eval-str! [expression]
   (let [{:keys [to-repl]} (:repl @state)
@@ -153,7 +149,6 @@
          :input (-> event .-target .-value)))
 
 (defn scroll [node]
-  #_(debugf "Scroll!")
   (let [node (r/dom-node node)]
     (aset node "scrollTop" (.-scrollHeight node))))
 
