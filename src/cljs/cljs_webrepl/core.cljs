@@ -302,11 +302,10 @@
 
 (defn repl-input [props]
   [:div.input
-   [:div.mdl-grid.mdl-shadow--2dp.white-bg
-    [:div.mdl-cell--12-col
-     [:div.flex-h
-      [input-field props]
-      [run-button props]]]]])
+   [:div.card-data.expression
+    [:div.flex-h
+     [input-field props]
+     [run-button props]]]])
 
 (defn input-card [{:keys [state] :as props} num]
   [:div.mdl-cell.mdl-cell--12-col
