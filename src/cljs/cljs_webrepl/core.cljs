@@ -48,6 +48,17 @@
       (assoc state :columns columns)
       state)))
 
+(defn close-dialog [id]
+  (some-> (.querySelector js/document (str "#" id))
+          (.close)))
+
+(defn show-dialog [id]
+  (debugf "Showing dialog: %s" id)
+  (when-let [dialog (.querySelector js/document (str "#" id))]
+    (when-not (.-showModal dialog)
+      (.registerDialog js/dialogPolyfill dialog))
+    (.showModal dialog)))
+
 (defn pprint-str [data]
   (with-out-str (fipp/pprint data)))
 
@@ -266,7 +277,7 @@
       [:pre "..."]])])
 
 (defn history-card
-  [{:keys [state columns] :as props} num {:keys [ns expression result output] :as history-item}]
+  [{:keys [state columns] :as props} {:keys [num ns expression result output] :as history-item}]
   [:div
    {:class (str "mdl-cell " (card-columns-class columns))}
    [:div.mdl-card.mdl-shadow--2dp
@@ -349,35 +360,26 @@
      (doall
       (for [[num history-item] (:history @state)]
         ^{:key num}
-        [history-card props num history-item]))
+        [history-card props (assoc history-item :num num)]))
      (when (input-ok? @state)
        [input-card props])]]])
 
-(defn close-dialog [id]
-  (some-> (.querySelector js/document id)
-          (.close)))
 
-(defn show-dialog [id]
-  (when-let [dialog (.querySelector js/document id)]
-    (when-not (.-showModal dialog)
-      (.registerDialog js/dialogPolyfill dialog))
-    (.showModal dialog)))
-
-(defn reset-dialog [state]
+(defn reset-dialog [{:keys [state]}]
   [:dialog.mdl-dialog {:id "reset-dialog"}
    [:div.mdl-dialog__content
     [:p "Reset REPL? All data will be lost."]]
    [:div.mdl-dialog__actions
     [:button.mdl-button
      {:on-click (fn []
-                  (close-dialog "#reset-dialog")
+                  (close-dialog "reset-dialog")
                   (reset-repl! state))}
      "Reset"]
     [:button.mdl-button
-     {:on-click #(close-dialog "#reset-dialog")}
+     {:on-click #(close-dialog "reset-dialog")}
      "Cancel"]]])
 
-(defn about-dialog []
+(defn about-dialog [props]
   [:dialog.mdl-dialog.mdl-dialog__wide {:id "about-dialog"}
    [:h4.mdl-dialog__title "CLJS-WebREPL"]
    [:div.mdl-dialog__content
@@ -390,62 +392,95 @@
      "Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version."]]
    [:div.mdl-dialog__actions
     [:button.mdl-button
-     {:on-click #(close-dialog "#about-dialog")}
+     {:on-click #(close-dialog "about-dialog")}
      "Ok"]]])
 
+(defn reset-repl-button [{:keys [show-reset-dialog]}]
+  [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
+   {:on-click show-reset-dialog
+    :style    {:color "#fff"}}
+   [:i.material-icons "report"]
+   [:span.mdl-cell--hide-phone "RESET"]])
 
-(defn home-page-header [{:keys [columns state] :as props}]
+(defn more-columns-button [{:keys [more-columns]}]
+  [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect.mdl-cell--hide-phone
+   {:on-click more-columns
+    :style    {:color "#fff"}}
+   [:i.material-icons "view_column"]])
+
+(defn less-columns-button [{:keys [less-columns]}]
+  [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect.mdl-cell--hide-phone
+   {:on-click less-columns
+    :style    {:color "#fff"}}
+   [:i.material-icons "view_stream"]])
+
+(defn menu-button [id]
+  [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id "main-menu"}
+   [:i.material-icons "more_vert"]])
+
+(defn more-columns-menu-item [{:keys [more-columns]}]
+  [:li.mdl-menu__item {:on-click more-columns} "More Columns"])
+
+(defn less-columns-menu-item [{:keys [less-columns]}]
+  [:li.mdl-menu__item {:on-click less-columns} "Less Columns"])
+
+(defn github-menu-item [{:keys [github]}]
+  [:li.mdl-menu__item {:on-click github} "GitHub"])
+
+(defn about-menu-item [{:keys [show-about-dialog]}]
+  [:li.mdl-menu__item {:on-click show-about-dialog} "About"])
+
+(defn reset-menu-item [{:keys [show-reset-dialog]}]
+  [:li.mdl-menu__item {:on-click show-reset-dialog} "Reset REPL"])
+
+(defn home-page-menu [props]
+  [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
+   {:for "main-menu"}
+   [more-columns-menu-item props]
+   [less-columns-menu-item props]
+   [reset-menu-item props]
+   [github-menu-item props]
+   [about-menu-item props]])
+
+(defn home-page-title [{:keys [title title-icon] :as props}]
+  [:span.mdl-layout-title
+   [:img.svg-size {:src title-icon}]
+   (str " " title)])
+
+(defn home-page-header [{:keys [reset-repl more-columns] :as props}]
   [:header.mdl-layout__header
    [:div.mdl-layout__header-row
-    [:span.mdl-layout-title
-     [:img.svg-size {:src "images/cljs-white.svg"}]
-     " CLJS-WebREPL"]
+    [home-page-title props]
     [:div.mdl-layout-spacer]
-    [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
-     {:on-click #(show-dialog "#reset-dialog")
-      :style    {:color "#fff"}}
-     [:i.material-icons "report"]
-     [:span "RESET"]]
-    [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
-     {:on-click #(swap! state more-columns)
-      :style    {:color "#fff"}}
-     [:i.material-icons "view_column"]]
-    [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
-     {:on-click #(swap! state less-columns)
-      :style    {:color "#fff"}}
-     [:i.material-icons "view_stream"]]
-    [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id "main-menu"}
-     [:i.material-icons "more_vert"]]
-    [:ul.mdl-menu.mdl-menu--bottom-right.mdl-js-menu.mdl-js-ripple-effect
-     {:for "main-menu"}
-     [:li.mdl-menu__item
-      {:on-click #(show-dialog "#reset-dialog")}
-      "Reset REPL"]
-     [:li.mdl-menu__item
-      {:on-click #(set! (.-location js/window) "https://github.com/theasp/cljs-webrepl")}
-      "GitHub"]
-     [:li.mdl-menu__item
-      {:on-click #(show-dialog "#about-dialog")}
-      "About"]]]])
+    [reset-repl-button props]
+    [less-columns-button props]
+    [more-columns-button props]
+    [menu-button "main-menu"]
+    [home-page-menu props]]])
 
-(defn home-page []
-  (let [columns (:columns @state)
-        props   {:state   state
-                 :columns columns
-                 :title   "Cljs-WebREPL"}]
-    [:div
-     [about-dialog]
-     [reset-dialog state]
-     [:div.tall
-      [mdl/upgrade
-       [:div.flex-v.tall.mdl-layout.mdl-js-layout.mdl-layout--fixed-header.mdl-layout--no-drawer-button
-        [home-page-header props]
-        (if (:ns @state)
-          [history props]
-          [please-wait props])]]]]))
+(defn home-page [{:keys [state] :as props}]
+  (debugf "Props: %s" (keys props))
+  [:div
+   [about-dialog props]
+   [reset-dialog props]
+   [:div.tall
+    [mdl/upgrade
+     [:div.flex-v.tall.mdl-layout.mdl-js-layout.mdl-layout--fixed-header.mdl-layout--no-drawer-button
+      [home-page-header props]
+      (if (:ns @state)
+        [history (assoc props :columns (:columns @state))]
+        [please-wait props])]]]])
 
 (defn mount-root []
-  (r/render [home-page] (.getElementById js/document "app")))
+  (let [props {:state             state
+               :more-columns      #(swap! state more-columns)
+               :less-columns      #(swap! state less-columns)
+               :show-reset-dialog #(show-dialog "reset-dialog")
+               :show-about-dialog #(show-dialog "about-dialog")
+               :github            #(set! (.-location js/window) "https://github.com/theasp/cljs-webrepl")
+               :title-icon        "images/cljs-white.svg"
+               :title             "Cljs-WebREPL"}]
+    (r/render [home-page props] (.getElementById js/document "app"))))
 
 (defn init! []
   (reset-repl! state)
