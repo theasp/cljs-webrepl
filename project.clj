@@ -8,6 +8,7 @@
                  [org.clojure/clojurescript "1.9.293"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [com.taoensso/timbre "4.7.4"]
+                 [cljsjs/clipboard "1.5.9-0"]
                  [cljsjs/material "1.2.1-0"]
                  [environ "1.1.0"]
                  [figwheel "0.5.8"]
@@ -33,25 +34,27 @@
   :minify-assets  {:assets
                    {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
 
-  :cljsbuild {:builds {:app         {:source-paths ["src/cljs"]
-                                     :compiler     {:output-to      "target/cljsbuild/public/js/app.js"
-                                                    :output-dir     "target/cljsbuild/public/js/app"
-                                                    :asset-path     "js/app"
-                                                    :main           cljs-webrepl.prod
-                                                    :static-fns     true
-                                                    :optimizations  :none
-                                                    :pretty-print   true
-                                                    :parallel-build true}}
+  :cljsbuild {:builds {:app
+                       {:source-paths ["src/cljs"]
+                        :compiler     {:output-to      "target/cljsbuild/public/js/app.js"
+                                       :output-dir     "target/cljsbuild/public/js/app"
+                                       :asset-path     "js/app"
+                                       :main           cljs-webrepl.prod
+                                       :static-fns     true
+                                       :optimizations  :none
+                                       :pretty-print   true
+                                       :parallel-build true}}
 
-                       :repl-thread {:source-paths ["src/cljs"]
-                                     :compiler     {:output-to      "target/cljsbuild/public/js/repl-thread.js"
-                                                    :output-dir     "target/cljsbuild/public/js/repl-thread"
-                                                    :asset-path     "js/repl-thread"
-                                                    :main           cljs-webrepl.repl-thread-prod
-                                                    :static-fns     true
-                                                    :optimizations  :simple
-                                                    :pretty-print   true
-                                                    :parallel-build true}}}}
+                       :repl-thread
+                       {:source-paths ["src/cljs"]
+                        :compiler     {:output-to      "target/cljsbuild/public/js/repl-thread.js"
+                                       :output-dir     "target/cljsbuild/public/js/repl-thread"
+                                       :asset-path     "js/repl-thread"
+                                       :main           cljs-webrepl.repl-thread-prod
+                                       :static-fns     true
+                                       :optimizations  :simple
+                                       :pretty-print   true
+                                       :parallel-build true}}}}
 
   :profiles {:dev
              {:plugins   [[lein-figwheel "0.5.8"]
@@ -65,28 +68,33 @@
 
               :env       {:dev true}
 
-              :cljsbuild {:builds {:app         {:source-paths ["src/cljs" "env/dev/cljs"]
-                                                 :compiler     {:source-map true
-                                                                :main       cljs-webrepl.dev}}
-                                   :repl-thread {:source-paths ["src/cljs" "env/dev/cljs"]
-                                                 :compiler     {:source-map "target/cljsbuild/public/js/repl-thread.js.map"
-                                                                :main       cljs-webrepl.repl-thread-dev}}
-                                   :test        {:source-paths ["src/cljs" "test/cljs" "env/dev/cljs"]
-                                                 :compiler     {:output-to     "target/test.js"
-                                                                :main          cljs-webrepl.doo-runner
-                                                                :optimizations :whitespace
-                                                                :pretty-print  true}}}}}
+              :cljsbuild {:builds {:app
+                                   {:source-paths ["src/cljs" "env/dev/cljs"]
+                                    :compiler     {:source-map true
+                                                   :main       cljs-webrepl.dev}}
+                                   :repl-thread
+                                   {:source-paths ["src/cljs" "env/dev/cljs"]
+                                    :compiler     {:source-map "target/cljsbuild/public/js/repl-thread.js.map"
+                                                   :main       cljs-webrepl.repl-thread-dev}}
+                                   :test
+                                   {:source-paths ["src/cljs" "test/cljs" "env/dev/cljs"]
+                                    :compiler     {:output-to     "target/test.js"
+                                                   :main          cljs-webrepl.doo-runner
+                                                   :optimizations :whitespace
+                                                   :pretty-print  true}}}}}
 
              :prod    {:hooks       [minify-assets.plugin/hooks]
                        :env         {:production true}
                        :omit-source true
                        :cljsbuild
-                       {:builds {:app         {:source-paths ["src/cljs" "env/prod/cljs"]
-                                               :compiler     {:optimizations :simple
-                                                              :pretty-print  false}}
-                                 :repl-thread {:source-paths ["src/cljs" "env/prod/cljs"]
-                                               :compiler     {:optimizations :simple
-                                                              :pretty-print  false}}}}}
+                       {:builds {:app
+                                 {:source-paths ["src/cljs" "env/prod/cljs"]
+                                  :compiler     {:optimizations :simple
+                                                 :pretty-print  false}}
+                                 :repl-thread
+                                 {:source-paths ["src/cljs" "env/prod/cljs"]
+                                  :compiler     {:optimizations :simple
+                                                 :pretty-print  false}}}}}
 
              :uberjar {:hooks       [minify-assets.plugin/hooks]
                        :prep-tasks  ["cljsbuild" "once"]
@@ -94,9 +102,11 @@
                        :omit-source true
                        :cljsbuild
                        {:jar    true
-                        :builds {:app         {:source-paths ["src/cljs" "env/prod/cljs"]
-                                               :compiler     {:optimizations :advanced
-                                                              :pretty-print  false}}
-                                 :repl-thread {:source-paths ["src/cljs" "env/prod/cljs"]
-                                               :compiler     {:optimizations :simple
-                                                              :pretty-print  false}}}}}})
+                        :builds {:app
+                                 {:source-paths ["src/cljs" "env/prod/cljs"]
+                                  :compiler     {:optimizations :advanced
+                                                 :pretty-print  false}}
+                                 :repl-thread
+                                 {:source-paths ["src/cljs" "env/prod/cljs"]
+                                  :compiler     {:optimizations :simple
+                                                 :pretty-print  false}}}}}})

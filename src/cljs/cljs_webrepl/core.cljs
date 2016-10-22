@@ -2,6 +2,7 @@
   (:require
    [clojure.string :as str :refer [blank? trim]]
    [cljs.core.async :refer [chan close! timeout put!]]
+   [cljsjs.clipboard :as clipboard]
    [reagent.core :as r :refer [atom]]
    [reagent.session :as session]
    [fipp.edn :as fipp]
@@ -174,19 +175,24 @@
      [:li.mdl-menu__item
       {:on-click #(eval-str! expression)}
       "Evaluate Again"]
-     [:li.mdl-menu__item
-      {:on-click #(copy-to-clipboard (pprint-str output))}
-      "Copy Expression"]
-     (if (seq output)
-       [:li.mdl-menu__item
-        {:data-clipboard-text "WHOOPS!"}
-        "Copy Output"]
+     [clipboard
+      [:li.mdl-menu__item
+       {:data-clipboard-text expression}
+       "Copy Expression"]]
+     (if (some? output)
+       [clipboard
+        [:li.mdl-menu__item
+         {:data-clipboard-text output}
+         "Copy Output"]]
        [:li.mdl-menu__item
         {:disabled true}
         "Copy Output"])
-     [:li.mdl-menu__item
-      {:on-click #(copy-to-clipboard (if (string? (:value result)) (:value result) (pprint-str (:value result))))}
-      "Copy Result"]]]])
+     [clipboard
+      [:li.mdl-menu__item
+       {:data-clipboard-text (if (string? (:value result))
+                               (:value result)
+                               (pprint-str (:value result)))}
+       "Copy Result"]]]]])
 
 (defn history-card-output [props output]
   [:div.card-output
