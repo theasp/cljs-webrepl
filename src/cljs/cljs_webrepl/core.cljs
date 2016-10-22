@@ -26,6 +26,20 @@
 (defn pprint-str [data]
   (with-out-str (fipp/pprint data)))
 
+
+(defn clipboard [child]
+  (let [clipboard-atom (atom nil)]
+    (r/create-class
+     {:display-name           "clipboard-button"
+      :component-did-mount    (fn [node]
+                                (let [clipboard (new js/Clipboard (r/dom-node node))]
+                                  (reset! clipboard-atom clipboard)))
+      :component-will-unmount (fn []
+                                (when-not (nil? @clipboard-atom)
+                                  (.destroy @clipboard-atom)
+                                  (reset! clipboard-atom nil)))
+      :reagent-render         (fn [child] child)})))
+
 (defn on-repl-eval [state num [ns expression]]
   (when num
     (swap! state update-in [:history num] assoc :ns ns :expression expression)))
