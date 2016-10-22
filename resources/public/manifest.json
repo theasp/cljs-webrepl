@@ -3,7 +3,7 @@
     "dir": "ltr",
     "name": "CLJS-WebREPL",
     "description": "ClojureScript REPL",
-    "short_name": "Racer3K",
+    "short_name": "CLJS-WebREPL",
     "icons": [{
         "src": "images/cljs-white.svg",
         "type": "image/svg"
