@@ -1,6 +1,6 @@
 (ns cljs-webrepl.core
   (:require
-   [clojure.string :as str :refer [blank? trim]]
+   [clojure.string :as str]
    [cljs.core.async :refer [chan close! timeout put!]]
    [cljsjs.clipboard :as clipboard]
    [reagent.core :as r :refer [atom]]
@@ -115,10 +115,7 @@
     (when (and (some? to-repl) (some? expression))
       (put! to-repl expression))))
 
-(defn copy-to-clipboard [txt]
-  (->> (js-obj "dataType" "text/plain" "data" txt)
-       (new js/ClipboardEvent "copy")
-       (js/document.dispatchEvent)))
+
 
 (defn history-prev [{:keys [cursor history] :as state}]
   (let [c          (count history)
@@ -144,7 +141,7 @@
          :input ""))
 
 (defn eval-input [state]
-  (let [input (trim (:input @state))]
+  (let [input (str/trim (:input @state))]
     (when-not (= "" input)
       (eval-str! input)
       (swap! state assoc :input ""))))
@@ -302,7 +299,7 @@
   (let [state              (:state props)
         {:keys [ns input]} @state
         is-init?           (some? ns)
-        is-blank?          (blank? input)
+        is-blank?          (str/blank? input)
         is-disabled?       (or (not is-init?) is-blank?)]
     [:div.padding-left
      ^{:key is-disabled?}
