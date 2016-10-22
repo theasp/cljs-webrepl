@@ -18,7 +18,7 @@
 (def default-state
   {:repl    nil
    :ns      nil
-   :columns 1
+   :columns 0
    :input   ""
    :cursor  0
    :history (sorted-map)})
@@ -27,26 +27,21 @@
 
 (def max-columns 4)
 
-(defn card-columns-class [columns]
-  (when (< 0 columns (inc max-columns))
-    (let [desktop (js/Math.floor (/ 12 columns))
-          tablet  (js/Math.floor (/ 8 columns))
-          phone   (js/Math.floor (/ 6 columns))]
-      (str "mdl-cell--" desktop "-col "
-           "mdl-cell--" tablet "-col-tablet "
-           "mdl-cell--" phone "-col-phone "))))
+(def card-size-class
+  ["mdl-cell--12-col mdl-cell--8-col-tablet mdl-cell--6-col-phone"
+   "mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--3-col-phone"
+   "mdl-cell--4-col mdl-cell--3-col-tablet mdl-cell--2-col-phone"])
+
+(defn set-columns [state columns]
+  (if (get card-size-class columns)
+    (assoc state :columns columns)
+    state))
 
 (defn more-columns [state]
-  (let [columns (inc (:columns state))]
-    (if (< columns (inc max-columns))
-      (assoc state :columns columns)
-      state)))
+  (set-columns state (inc (:columns state))))
 
 (defn less-columns [state]
-  (let [columns (dec (:columns state))]
-    (if (< 0 columns)
-      (assoc state :columns columns)
-      state)))
+  (set-columns state (dec (:columns state))))
 
 (defn close-dialog [id]
   (some-> (.querySelector js/document (str "#" id))
@@ -277,7 +272,7 @@
 (defn history-card
   [{:keys [state columns] :as props} {:keys [num ns expression result output] :as history-item}]
   [:div
-   {:class (str "mdl-cell " (card-columns-class columns))}
+   {:class (str "mdl-cell " (card-size-class columns))}
    [:div.mdl-card.mdl-shadow--2dp
     [history-card-menu props num history-item]
     [:div.card-data.expression
@@ -457,7 +452,6 @@
     [home-page-menu props]]])
 
 (defn home-page [{:keys [state] :as props}]
-  (debugf "Props: %s" (keys props))
   [:div
    [about-dialog props]
    [reset-dialog props]
