@@ -10,5 +10,5 @@
     }],
     "scope": "/cljs-webrepl/",
     "start_url": "/cljs-webrepl/",
-    "display": "fullscreen",
+    "display": "fullscreen"
 }
