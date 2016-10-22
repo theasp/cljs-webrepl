@@ -247,7 +247,7 @@
     [history-card-menu props num history-item]
     [:div.card-data.expression
      [:code
-      (str num " " ns "=> ")
+      (str ns "=> ")
       (syntaxify expression)]]
     [:hr.border]
 
