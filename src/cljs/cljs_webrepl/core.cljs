@@ -151,8 +151,6 @@
     (when (and (some? to-repl) (some? expression))
       (put! to-repl expression))))
 
-
-
 (defn history-prev [{:keys [cursor history] :as state}]
   (let [c          (count history)
         new-cursor (inc cursor)]
