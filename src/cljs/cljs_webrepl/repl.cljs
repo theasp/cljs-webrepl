@@ -14,7 +14,7 @@
   (merge (replumb/options :browser
                           ["/src/cljs" "/js/compiled/out"]
                           replumb-io/fetch-file!)
-         {:no-pr-str-on-value false
+         {:no-pr-str-on-value true
           :warning-as-error   true
           :verbose            false}))
 
