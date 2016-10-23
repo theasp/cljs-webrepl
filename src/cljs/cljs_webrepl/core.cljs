@@ -3,14 +3,12 @@
    [clojure.string :as str]
    [cljs.core.async :refer [chan close! timeout put!]]
    [cljsjs.clipboard :as clipboard]
-   [cljsjs.highlight]
-   [cljsjs.highlight.langs.clojure]
    [reagent.core :as r :refer [atom]]
-   [reagent.session :as session]
    [fipp.edn :as fipp]
    [cljs-webrepl.repl :as repl]
    [cljs-webrepl.repl-thread :as repl-thread]
    [cljs-webrepl.mdl :as mdl]
+   [cljs-webrepl.editor :as editor]
    [taoensso.timbre :as timbre
     :refer-macros (tracef debugf infof warnf errorf)])
   (:require-macros
@@ -49,14 +47,14 @@
           (.close)))
 
 (defn show-dialog [id]
-  (debugf "Showing dialog: %s" id)
   (when-let [dialog (.querySelector js/document (str "#" id))]
     (when-not (.-showModal dialog)
       (.registerDialog js/dialogPolyfill dialog))
     (.showModal dialog)))
 
 (defn pprint-str [data]
-  (with-out-str (fipp/pprint data)))
+  (-> (with-out-str (fipp/pprint data))
+      (str/trim-newline)))
 
 (defn trigger
   "Returns a reagent class that can be used to easily add triggers
@@ -81,14 +79,7 @@
                                   (reset! clipboard-atom nil)))
       :reagent-render         (fn [child] child)})))
 
-(defn highlight-clj [txt]
-  (r/create-class
-   {:display-name         "highlight-clj"
-    :component-did-mount  (fn [node]
-                            (debugf "Highlighting")
-                            (.highlightBlock js/hljs (r/dom-node node)))
-    :component-did-update (fn [node old-argv] (.highlightBlock (r/dom-node node)))
-    :reagent-render       (fn [txt] [:code.card.clojure txt])}))
+
 
 (defn focus-node [node]
   (-> (r/dom-node node)
@@ -180,32 +171,32 @@
          :input ""))
 
 (defn eval-input [state]
-  (let [input (str/trim (:input @state))]
-    (when-not (= "" input)
-      (eval-str! input)
+  (let [expression (str/trim (:input @state))]
+    (when-not (str/blank? expression)
+      (eval-str! expression)
       (swap! state assoc :input ""))))
 
-(defn input-key-down [state event]
-  (case (.-which event)
-    ;; Enter
-    13 (do (eval-input state)
-           (. event preventDefault))
+#_(defn input-key-down [state event]
+    (case (.-which event)
+      ;; Enter
+      13 (do (eval-input state)
+             (. event preventDefault))
 
-    ;; Escape
-    27 (do (swap! state clear-input)
-           (. event preventDefault))
+      ;; Escape
+      27 (do (swap! state clear-input)
+             (. event preventDefault))
 
-    ;; Tab
-    9  (. event preventDefault)
+      ;; Tab
+      9  (. event preventDefault)
 
-    ;; Up
-    38 (do (swap! state history-prev)
-           (. event preventDefault))
+      ;; Up
+      38 (do (swap! state history-prev)
+             (. event preventDefault))
 
-    ;;Down
-    40 (do (swap! state history-next)
-           (. event preventDefault))
-    nil))
+      ;;Down
+      40 (do (swap! state history-next)
+             (. event preventDefault))
+      nil))
 
 (defn input-on-change [state event]
   (assoc state
@@ -223,7 +214,7 @@
     :component-did-mount scroll
     :reagent-render      identity}))
 
-(defn history-card-menu [props num {:keys [ns expression result output] :as history-item}]
+(defn history-card-menu [props {:keys [num ns expression result output] :as history-item}]
   [mdl/upgrade
    [:div.mdl-card__menu
     [:button.mdl-button.mdl-js-button.mdl-button--icon.mdl-js-ripple-effect {:id (str "menu-" num)}
@@ -252,36 +243,37 @@
                                (pprint-str (:value result)))}
        "Copy Result"]]]]])
 
+(defn history-card-expression [props ns expression]
+  [:div.card-data.expression
+   [:div
+    [editor/code (str ";; (ns " ns ")\n" expression)]]])
+
 (defn history-card-output [props output]
-  [:div.card-output
-   [:div.card-data
-    (into [:pre.line]
-          (for [line (str/split output #"\n")]
-            [:code.line line]))]
+  [:div
+   [:div.card-data.output
+    [editor/text (str/trim-newline output)]]
    [:hr.border]])
 
 (defn history-card-result [props {:keys [success? value error] :as result}]
-  [:div.card-data.result]
-  (if result
-    (if success?
-      (if (string? value)
-        [highlight-clj (str "\"" value "\"")]
-        [highlight-clj (pprint-str value)])
-      [highlight-clj (pprint-str error)])
-    [:code "..."]))
+  [:div.card-data.result
+   (if result
+     (if success?
+       (if (string? value)
+         [editor/code (str "\"" value "\"")]
+         [editor/code (pprint-str value)])
+       [editor/code (pprint-str error)])
+     [editor/code "..."])])
 
 (defn history-card
-  [{:keys [state columns] :as props} {:keys [num ns expression result output] :as history-item}]
+  [{:keys [state columns] :as props} {:keys [ns expression result output] :as history-item}]
   [:div
    {:class (str "mdl-cell " (card-size-class columns))}
    [:div.mdl-card.mdl-shadow--2dp
-    [history-card-menu props num history-item]
-    [highlight-clj (str ";; " ns "\n" expression)]
+    [history-card-expression props ns expression]
+    [history-card-menu props history-item]
     [:hr.border]
-
     (when (seq output)
       [history-card-output props output])
-
     [history-card-result props result]]])
 
 (defn please-wait [props]
@@ -290,58 +282,39 @@
     [:div.mdl-cell.mdl-cell--12-col
      [:p "REPL initializing..."]]]])
 
-(defn input-field [props]
-  (let [state              (:state props)
-        {:keys [ns input]} @state
-        is-init?           (some? ns)
-        ns                 (or ns "unknown")]
-    [:div.input-field
-     [:form {:action "#" "autoComplete" "off"}
-      [mdl/upgrade
-       [:div.wide.mdl-textfield.mdl-js-textfield.mdl-textfield--floating-label
-        [trigger
-         {:component-did-mount focus-node}
-         [:input.wide.mdl-textfield__input
-          {:type         :text
-           :id           "input"
-           :autocomplete "off"
-           :value        input
-           :disabled     (not is-init?)
-           :on-change    #(swap! state input-on-change %)
-           :on-key-down  #(input-key-down state %)}]]
-        ^{:key is-init?}
-        [:label.mdl-textfield__label {:for "input"}
-         (str ns "=>")]]]]]))
-
-(defn run-button [props]
-  (let [state              (:state props)
-        {:keys [ns input]} @state
-        is-init?           (some? ns)
-        is-blank?          (str/blank? input)
-        is-disabled?       (or (not is-init?) is-blank?)]
+(defn run-button [{:keys [state submit] :as props}]
+  (let [ns           (:ns @state)
+        is-init?     (some? ns)
+        is-blank?    (str/blank? (:input @state))
+        is-disabled? (or (not is-init?) is-blank?)]
     [:div.padding-left
      ^{:key is-disabled?}
      [mdl/upgrade
       [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-js-ripple-effect.mdl-button--colored
        {:disabled is-disabled?
-        :on-click #(eval-input state)}
+        :on-click submit}
        [:i.material-icons "send"]]]]))
 
-(defn repl-input [props]
-  [:div.input
-   [:div.card-data.expression
-    [:div.flex-h
-     [input-field props]
-     [run-button props]]]])
+(defn repl-input [{:keys [state] :as props}]
+  [mdl/upgrade
+   [:div.input-field.mdl-textfield.mdl-js-textfield.mdl-textfield--floating-label
+    [:div.mdl-textfield__label {:for "repl-input"}
+     (str (:ns @state) "=>")]
+    [:div.mdl-textfield__input {:id "repl-input"}
+     [editor/editor props (:input @state)]]]])
 
-(defn input-card [{:keys [state] :as props} num]
+(defn input-card [props num]
   [:div.mdl-cell.mdl-cell--12-col
    [:div.mdl-card.mdl-shadow--2dp
-    [repl-input props]]])
+    [:div.card-data.expression
+     [:div.flex-h
+      [repl-input props]
+      [run-button props]]]]])
 
 (defn input-ok? [{:keys [history]}]
   (or (= (count history) 0)
       (some? (-> history last second :result))))
+
 
 (defn history [props]
   ^{:key (count (:history @state))}
@@ -462,7 +435,12 @@
         [please-wait props])]]]])
 
 (defn mount-root []
-  (let [props {:state             state
+  (let [input (r/cursor state [:input])
+        props {:state             state
+               :input             input
+               :submit            #(eval-input state)
+               :history-prev      #(swap! state history-prev)
+               :history-next      #(swap! state history-next)
                :more-columns      #(swap! state more-columns)
                :less-columns      #(swap! state less-columns)
                :show-reset-dialog #(show-dialog "reset-dialog")

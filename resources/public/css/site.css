@@ -59,6 +59,11 @@ code.line:before{
   min-height: 0px;
 }
 
+.mdl-card__menu > button {
+  z-index: 2;
+}
+
+
 hr.border {
   margin: 0px;
 }
@@ -137,10 +142,15 @@ hr.border {
   padding-right: 16px;
 }
 
-.result, .expression, .padding-top {
+.output, .result, .expression, .padding-top {
   padding-top: 16px;
 }
 
-.result, .expression, .padding-bottom {
+.output, .result, .expression, .padding-bottom {
   padding-bottom: 16px;
+}
+
+.CodeMirror {
+  height: auto;
+  font-family: 'Roboto Mono', 'Courier New', monospace;
 }
