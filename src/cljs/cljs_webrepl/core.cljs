@@ -245,8 +245,9 @@
 
 (defn history-card-expression [props ns expression]
   [:div.card-data.expression
+   [:div.codeMirror-lines {:style {:float :left}} [:code (str ns "=>")]]
    [:div
-    [editor/code (str ";; (ns " ns ")\n" expression)]]])
+    [editor/code  expression]]])
 
 (defn history-card-output [props output]
   [:div

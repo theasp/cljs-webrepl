@@ -154,3 +154,7 @@ hr.border {
   height: auto;
   font-family: 'Roboto Mono', 'Courier New', monospace;
 }
+
+.CodeMirror-lines {
+  padding: 0px;
+}
