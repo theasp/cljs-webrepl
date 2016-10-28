@@ -174,7 +174,7 @@
   (let [expression (str/trim (:input @state))]
     (when-not (str/blank? expression)
       (eval-str! expression)
-      (swap! state assoc :input ""))))
+      (swap! state assoc :input "" :cursor 0))))
 
 #_(defn input-key-down [state event]
     (case (.-which event)
