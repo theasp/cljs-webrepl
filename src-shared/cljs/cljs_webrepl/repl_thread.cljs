@@ -18,15 +18,15 @@
     :master))
 
 (defn- deserialize [reader msg]
-  (debugf "Deserialize: %s %s" (worker-type) (.-data.msg msg))
-  (some->> (.-data.msg msg)
-           (t/read reader)))
+  (let [transit (-> msg .-data .-transit)]
+    (debugf "Deserialize: %s %s" (worker-type) transit)
+    (t/read transit)))
 
 (defn- serialize [writer msg]
   (debugf "Serialize: %s %s" (worker-type) msg)
   (let [msg (t/write writer msg)]
     (debugf "Serialized: %s %s" (worker-type) msg)
-    (js-obj "msg" msg)))
+    (js-obj "transit" msg)))
 
 (defn post-message [target writer msg]
   (try
