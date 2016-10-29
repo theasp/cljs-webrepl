@@ -5,7 +5,6 @@
    [cljsjs.clipboard :as clipboard]
    [reagent.core :as r :refer [atom]]
    [fipp.edn :as fipp]
-   [cljs-webrepl.repl :as repl]
    [cljs-webrepl.repl-thread :as repl-thread]
    [cljs-webrepl.mdl :as mdl]
    [cljs-webrepl.editor :as editor]
