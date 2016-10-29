@@ -10,14 +10,20 @@
 (def script-name "js/repl-thread.js")
 
 (defn worker? []
-  (undefined? (.-document js/self)))
+  (nil? js/self.document))
+
+(defn worker-type []
+  (if (worker?)
+    :worker
+    :master))
 
 (defn- deserialize [reader msg]
+  (debugf "Deserialize: %s %s" (worker-type) (.-data.msg msg))
   (some->> (.-data.msg msg)
            (t/read reader)))
 
-(defn- serialzie [writer msg]
-  (debugf "Serialize: %s %s" (if (worker?) :worker :master) msg)
+(defn- serialize [writer msg]
+  (debugf "Serialize: %s %s"  (worker-type) msg)
   (let [msg (t/write writer msg)]
     (js-obj "msg" msg)))
 
@@ -30,7 +36,7 @@
         writer     (t/writer :json)
 
         finally-fn (fn []
-                     (debugf "Cleaning up WebWorker (worker thread? %s)" (worker?))
+                     (debugf "Cleaning up WebWorker %s" (worker-type))
                      (close! input-ch)
                      (close! output-ch)
                      (when close-fn
@@ -54,9 +60,9 @@
       (loop []
         (when-let [msg (<! input-ch)]
           (try
-            (.postMessage target (serialzie writer msg))
+            (.postMessage target (serialize writer msg))
             (catch js/Error e
-              (.postMessage target (serialzie writer [:webworker/error nil (str e)]))))
+              (.postMessage target (serialize writer [:webworker/error nil (str e)]))))
           (recur)))
       (finally-fn))
     {:input-ch  input-ch
