@@ -17,8 +17,15 @@
     :worker
     :master))
 
-(defn- deserialize [reader msg]
-  (let [transit (-> msg .-data .-transit)]
+(defn- deserialize [reader event]
+  (let [data    (.-data event)
+        transit (.-transit data)]
+    (debugf "Deserialize: Event:")
+    (js/console.log event)
+    (debugf "Deserialize: Data:")
+    (js/console.log data)
+    (debugf "Deserialize: Transit:")
+    (js/console.log transit)
     (debugf "Deserialize: %s %s" (worker-type) transit)
     (t/read transit)))
 
@@ -49,10 +56,8 @@
                      (when close-fn
                        (close-fn)))
 
-        recv-fn    (fn [msg]
-                     (debugf "MSG: %s" msg)
-                     (js/console.log msg)
-                     (when-let [msg (deserialize reader msg)]
+        recv-fn    (fn [event]
+                     (when-let [msg (deserialize reader event)]
                        (put! output-ch msg)))
 
         error-fn   (fn [err]
