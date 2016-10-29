@@ -41,11 +41,17 @@
   (when o
     (reduce #(obj->map* o %1 %2 obj->map) {} (js-keys o))))
 
+(defn add-cause [m cause]
+  (if (some? cause)
+    (assoc m :cause (str cause))
+    m))
+
 (defn err->map [err]
   (when err
     (errorf "Evaluation: %s" err)
-    {:message (.-message err)
-     :data    (.-data err)}))
+    (-> {:message (.-message err)
+         :data    (.-data err)}
+        (add-cause (.-cause err)))))
 
 (defn fix-value [value]
   (cond (native? value) value
