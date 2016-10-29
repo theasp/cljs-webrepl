@@ -84,7 +84,7 @@
              :backend-prod  {:omit-source true
                              :cljsbuild   {:builds {:backend
                                                     {:source-paths ["src-backend/cljs-prod"]
-                                                     :compiler     {:optimizations :whitespace
+                                                     :compiler     {:optimizations :simple
                                                                     :pretty-print  false}}}}}}
   :aliases {"dev"  ["do" "clean," "with-profile" "backend-dev" "cljsbuild" "once" "backend," "with-profile" "frontend-dev" "figwheel"]
             "prod" ["do" "clean," "with-profile" "backend-prod" "cljsbuild" "once" "backend," "with-profile" "frontend-prod" "cljsbuild" "once" "frontend"]})
