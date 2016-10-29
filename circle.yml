@@ -11,12 +11,11 @@ general:
 
 test:
   pre:
-    - lein with-profile frontend-dev cljsbuild once frontend
-    - lein with-profile backend-dev cljsbuild once backend
+    - lein with-profile frontend-prod cljsbuild once frontend
+    - lein with-profile backend-prod cljsbuild once backend
 
 deployment:
   master:
     branch: master
     commands:
-      - lein prod
       - ./deploy.sh
