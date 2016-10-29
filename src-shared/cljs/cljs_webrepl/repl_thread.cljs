@@ -27,7 +27,7 @@
     (debugf "Deserialize: Transit:")
     (js/console.log transit)
     (debugf "Deserialize: %s %s" (worker-type) transit)
-    (t/read transit)))
+    (t/read reader transit)))
 
 (defn- serialize [writer msg]
   (debugf "Serialize: %s %s" (worker-type) msg)
