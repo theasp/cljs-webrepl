@@ -19,7 +19,7 @@
 
 (defn- deserialize [reader event]
   (let [data    (.-data event)
-        transit (.-transit data)]
+        transit (aget data "transit")]
     (debugf "Deserialize: Event:")
     (js/console.log event)
     (debugf "Deserialize: Data:")
