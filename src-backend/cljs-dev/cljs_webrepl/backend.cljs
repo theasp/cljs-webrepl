@@ -1,4 +1,4 @@
-(ns ^:figwheel-no-load cljs-webrepl.repl-thread-dev
+(ns ^:figwheel-no-load cljs-webrepl.backend
   (:require
    [cljs-webrepl.repl-thread :as repl-thread]
    [cljs-webrepl.repl :as repl]))

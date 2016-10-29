@@ -7,7 +7,7 @@
   (:require-macros
    [cljs.core.async.macros :refer [go go-loop]]))
 
-(def script-name "js/repl-thread.js")
+(def script-name "js/backend.js")
 
 (defn worker? []
   (nil? js/self.document))

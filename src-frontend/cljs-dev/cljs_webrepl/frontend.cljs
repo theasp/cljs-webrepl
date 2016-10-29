@@ -1,4 +1,4 @@
-(ns ^:figwheel-no-load cljs-webrepl.dev
+(ns ^:figwheel-no-load cljs-webrepl.frontend
   (:require [cljs-webrepl.core :as core]
             [figwheel.client :as figwheel :include-macros true]))
 

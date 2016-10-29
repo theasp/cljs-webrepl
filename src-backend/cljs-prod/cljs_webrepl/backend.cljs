@@ -1,4 +1,4 @@
-(ns cljs-webrepl.repl-thread-prod
+(ns cljs-webrepl.backend
   (:require
    [cljs-webrepl.repl-thread :as repl-thread]
    [cljs-webrepl.repl :as repl]))

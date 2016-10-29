@@ -22,8 +22,8 @@
   :min-lein-version "2.5.0"
 
   :clean-targets ^{:protect false} [:target-path
-                                    [:cljsbuild :builds :app :compiler :output-dir]
-                                    [:cljsbuild :builds :app :compiler :output-to]]
+                                    [:cljsbuild :builds :frontend :compiler :output-dir]
+                                    [:cljsbuild :builds :frontend :compiler :output-to]]
 
   :resource-paths ["resources" "target/cljsbuild"]
 
@@ -32,10 +32,10 @@
 
   :cljsbuild {:builds {:frontend
                        {:source-paths ["src-frontend/cljs" "src-shared/cljs"]
-                        :compiler     {:output-to      "target/cljsbuild/public/js/app.js"
-                                       :output-dir     "target/cljsbuild/public/js/app"
-                                       :asset-path     "js/app"
-                                       :main           cljs-webrepl.prod
+                        :compiler     {:output-to      "target/cljsbuild/public/js/frontend.js"
+                                       :output-dir     "target/cljsbuild/public/js/frontend"
+                                       :asset-path     "js/frontend"
+                                       :main           cljs-webrepl.frontend
                                        :static-fns     true
                                        :optimizations  :none
                                        :pretty-print   true
@@ -43,10 +43,10 @@
 
                        :backend
                        {:source-paths ["src-backend/cljs" "src-shared/cljs"]
-                        :compiler     {:output-to      "target/cljsbuild/public/js/repl-thread.js"
-                                       :output-dir     "target/cljsbuild/public/js/repl-thread"
-                                       :asset-path     "js/repl-thread"
-                                       :main           cljs-webrepl.repl-thread-prod
+                        :compiler     {:output-to      "target/cljsbuild/public/js/backend.js"
+                                       :output-dir     "target/cljsbuild/public/js/backend"
+                                       :asset-path     "js/backend"
+                                       :main           cljs-webrepl.backend
                                        :static-fns     true
                                        :optimizations  :whitespace
                                        :pretty-print   true
@@ -66,12 +66,10 @@
 
                              :cljsbuild    {:builds {:frontend
                                                      {:source-paths ["src-frontend/cljs-dev"]
-                                                      :compiler     {:source-map true
-                                                                     :main       cljs-webrepl.dev}}}}}
+                                                      :compiler     {:source-map true}}}}}
              :backend-dev   {:cljsbuild {:builds {:backend
                                                   {:source-paths ["src-backend/cljs-dev"]
-                                                   :compiler     {:source-map "target/cljsbuild/public/js/repl-thread.js.map"
-                                                                  :main       cljs-webrepl.repl-thread-dev}}}}}
+                                                   :compiler     {:source-map "target/cljsbuild/public/js/backend.js.map"}}}}}
 
              :frontend-prod {:dependencies [[cljsjs/clipboard "1.5.9-0"]
                                             [cljsjs/material "1.2.1-0"]
