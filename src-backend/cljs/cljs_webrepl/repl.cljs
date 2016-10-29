@@ -64,7 +64,7 @@
         result-fn #(put! from-repl [:repl/result num (replumb-repl/current-ns) (fix-result %)])]
     (binding [cljs.core/*print-newline* true
               cljs.core/*print-fn*      print-fn]
-      (debugf "REPL: %s" expression)
+      (tracef "REPL: %s" expression)
       ;; Use the 3rd argument to put! so the :init event is sent first
       (replumb/read-eval-call repl-opts result-fn expression))))
 
