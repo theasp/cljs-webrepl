@@ -26,12 +26,11 @@
 
 (defn obj->map* [obj acc key obj->map]
   (let [value (aget obj key)]
-    (if (fn? value)
-      acc
-      (cond
-        (native? value) (assoc acc (keyword key) value)
-        (object? value) (obj->map obj)
-        :else           (assoc acc (keyword key) value)))))
+    (cond
+      (fn? value)     acc
+      (native? value) (assoc acc (keyword key) value)
+      (object? value) (obj->map obj)
+      :else           (assoc acc (keyword key) value))))
 
 (defn- obj->map
   "Workaround for `TypeError: Cannot convert object to primitive value`s
@@ -39,8 +38,8 @@
   failing to correctly identify `(.-body exp-req)` as an object. Not sure
   what's causing this problem."
   [o]
-  (let [obj->map #(obj->map* o % % obj->map)]
-    (reduce obj->map* nil (js-keys o))))
+  (when o
+    (reduce #(obj->map* o %1 %2 obj->map) {} (js-keys o))))
 
 (defn err->map [err]
   (when err
