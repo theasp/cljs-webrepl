@@ -1,6 +1,7 @@
 (ns cljs-webrepl.editor
   (:require
    [reagent.core :as r :refer [atom]]
+   [clojure.string :as str]
    [cljsjs.codemirror]
    [cljsjs.codemirror.mode.clojure]
    [cljsjs.codemirror.keymap.emacs]
@@ -50,8 +51,10 @@
   (swap! state assoc :input (.getValue editor)))
 
 (defn editor-key-enter [{:keys [input submit] :as props} editor event]
-  (submit input)
-  (.preventDefault event))
+  (when (not (.-shiftKey event))
+    (when (or (.-ctrlKey event) (not (str/includes? @input "\n")))
+      (submit input)
+      (.preventDefault event))))
 
 (defn editor-key-up [{:keys [history-prev state] :as props} editor event]
   (history-prev)
@@ -75,8 +78,7 @@
 (defn editor-key [props editor event]
   (when-let [name (key-code->name (.-keyCode event))]
     (case name
-      :enter (when (or (.-ctrlKey event) (not (.-shiftKey event)))
-               (editor-key-enter props editor event))
+      :enter (editor-key-enter props editor event)
       :up    (editor-key-up props editor event)
       :down  (editor-key-down props editor event)
       nil)))
