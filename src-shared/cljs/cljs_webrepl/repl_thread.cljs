@@ -2,7 +2,6 @@
   (:require
    [cljs.core.async :refer [chan close! timeout put! pipe]]
    [cognitect.transit :as t]
-   [cljs-webrepl.repl :as repl]
    [taoensso.timbre :as timbre
     :refer-macros (tracef debugf infof warnf errorf)])
   (:require-macros
@@ -80,8 +79,7 @@
     {:to-repl   to-worker
      :from-repl from-worker}))
 
-(defn worker []
-  (let [{:keys [to-worker from-worker] :as worker} (start-backend)
-        {:keys [to-repl from-repl] :as repl}       (repl/repl-chan-pair)]
+(defn worker [{:keys [to-repl from-repl] :as repl}]
+  (let [{:keys [to-worker from-worker] :as worker} (start-backend)]
     (pipe to-worker to-repl)
     (pipe from-repl from-worker)))
