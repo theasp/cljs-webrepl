@@ -44,6 +44,8 @@
                        (close-fn)))
 
         recv-fn    (fn [msg]
+                     (debugf "MSG: %s" msg)
+                     (js/console.log msg)
                      (when-let [msg (deserialize reader msg)]
                        (put! output-ch msg)))
 
