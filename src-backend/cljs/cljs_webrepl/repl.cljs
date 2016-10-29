@@ -21,7 +21,7 @@
 (def current-ns replumb-repl/current-ns)
 
 (defn native? [obj]
-  (or (nil? obj) (string? obj) (number? obj) (keyword? obj) (coll? obj)))
+  (or (nil? obj) (boolean? obj) (string? obj) (number? obj) (keyword? obj) (coll? obj)))
 
 
 (defn obj->map* [obj acc key obj->map]
