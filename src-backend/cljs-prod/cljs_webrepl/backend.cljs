@@ -4,6 +4,7 @@
    [cljs-webrepl.repl :as repl]))
 
 ;;ignore println statements in prod
-(set! *print-fn* (fn [& _]))
+;;(set! *print-fn* (fn [& _]))
+(enable-console-print!)
 
 (repl-thread/worker (repl/repl-chan-pair))
