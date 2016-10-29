@@ -17,6 +17,5 @@ deployment:
   master:
     branch: master
     commands:
-      - lein clean
-      - lein with-profile prod cljsbuild once
+      - lein prod
       - ./deploy.sh

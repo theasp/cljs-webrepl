@@ -18,6 +18,7 @@
            (t/read reader)))
 
 (defn- serialzie [writer msg]
+  (debugf "Serialize: %s %s" (if (worker?) :worker :master) msg)
   (let [msg (t/write writer msg)]
     (js-obj "msg" msg)))
 

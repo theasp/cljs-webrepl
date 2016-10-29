@@ -8,9 +8,6 @@
                  [org.clojure/clojurescript "1.9.293"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [com.taoensso/timbre "4.7.4"]
-                 [cljsjs/clipboard "1.5.9-0"]
-                 [cljsjs/material "1.2.1-0"]
-                 [cljsjs/codemirror "5.19.0-0"]
                  [environ "1.1.0"]
                  [figwheel "0.5.8"]
                  [fipp "0.6.6"]
@@ -35,8 +32,8 @@
   :minify-assets  {:assets
                    {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
 
-  :cljsbuild {:builds {:app
-                       {:source-paths ["src/cljs"]
+  :cljsbuild {:builds {:frontend
+                       {:source-paths ["src-frontend/cljs" "src-shared/cljs"]
                         :compiler     {:output-to      "target/cljsbuild/public/js/app.js"
                                        :output-dir     "target/cljsbuild/public/js/app"
                                        :asset-path     "js/app"
@@ -46,68 +43,57 @@
                                        :pretty-print   true
                                        :parallel-build true}}
 
-                       :repl-thread
-                       {:source-paths ["src/cljs"]
+                       :backend
+                       {:source-paths ["src-backend/cljs" "src-shared/cljs"]
                         :compiler     {:output-to      "target/cljsbuild/public/js/repl-thread.js"
                                        :output-dir     "target/cljsbuild/public/js/repl-thread"
                                        :asset-path     "js/repl-thread"
                                        :main           cljs-webrepl.repl-thread-prod
                                        :static-fns     true
-                                       :optimizations  :simple
+                                       :optimizations  :whitespace
                                        :pretty-print   true
                                        :parallel-build true}}}}
 
-  :profiles {:dev
-             {:plugins   [[lein-figwheel "0.5.8"]
-                          [lein-doo "0.1.6"]]
+  :profiles {:frontend-dev  {:dependencies [[cljsjs/clipboard "1.5.9-0"]
+                                            [cljsjs/material "1.2.1-0"]
+                                            [cljsjs/codemirror "5.19.0-0"]]
 
-              :figwheel  {:http-server-root "public"
-                          :server-port      3449
-                          :nrepl-port       7001
-                          :css-dirs         ["resources/public/css"]
-                          :load-all-builds  true}
+                             :plugins      [[lein-figwheel "0.5.8"]]
 
-              :env       {:dev true}
+                             :figwheel     {:http-server-root "public"
+                                            :server-port      3449
+                                            :nrepl-port       7001
+                                            :css-dirs         ["resources/public/css"]
+                                            :load-all-builds  true}
 
-              :cljsbuild {:builds {:app
-                                   {:source-paths ["src/cljs" "env/dev/cljs"]
-                                    :compiler     {:source-map true
-                                                   :main       cljs-webrepl.dev}}
-                                   :repl-thread
-                                   {:source-paths ["src/cljs" "env/dev/cljs"]
-                                    :compiler     {:source-map "target/cljsbuild/public/js/repl-thread.js.map"
-                                                   :main       cljs-webrepl.repl-thread-dev}}
-                                   :test
-                                   {:source-paths ["src/cljs" "test/cljs" "env/dev/cljs"]
-                                    :compiler     {:output-to     "target/test.js"
-                                                   :main          cljs-webrepl.doo-runner
-                                                   :optimizations :whitespace
-                                                   :pretty-print  true}}}}}
+                             :env          {:dev true}
 
-             :prod    {:hooks       [minify-assets.plugin/hooks]
-                       :env         {:production true}
-                       :omit-source true
-                       :cljsbuild
-                       {:builds {:app
-                                 {:source-paths ["src/cljs" "env/prod/cljs"]
-                                  :compiler     {:optimizations :simple
-                                                 :pretty-print  false}}
-                                 :repl-thread
-                                 {:source-paths ["src/cljs" "env/prod/cljs"]
-                                  :compiler     {:optimizations :simple
-                                                 :pretty-print  false}}}}}
+                             :cljsbuild    {:builds {:frontend
+                                                     {:source-paths ["src-frontend/cljs-dev"]
+                                                      :compiler     {:source-map true
+                                                                     :main       cljs-webrepl.dev}}}}}
+             :backend-dev   {:env       {:dev true}
+                             :cljsbuild {:builds {:backend
+                                                  {:source-paths ["src-backend/cljs-dev"]
+                                                   :compiler     {:source-map "target/cljsbuild/public/js/repl-thread.js.map"
+                                                                  :main       cljs-webrepl.repl-thread-dev}}}}}
 
-             :uberjar {:hooks       [minify-assets.plugin/hooks]
-                       :prep-tasks  ["cljsbuild" "once"]
-                       :env         {:production true}
-                       :omit-source true
-                       :cljsbuild
-                       {:jar    true
-                        :builds {:app
-                                 {:source-paths ["src/cljs" "env/prod/cljs"]
-                                  :compiler     {:optimizations :advanced
-                                                 :pretty-print  false}}
-                                 :repl-thread
-                                 {:source-paths ["src/cljs" "env/prod/cljs"]
-                                  :compiler     {:optimizations :simple
-                                                 :pretty-print  false}}}}}})
+             :frontend-prod {:dependencies [[cljsjs/clipboard "1.5.9-0"]
+                                            [cljsjs/material "1.2.1-0"]
+                                            [cljsjs/codemirror "5.19.0-0"]]
+                             :hooks        [minify-assets.plugin/hooks]
+                             :env          {:production true}
+                             :omit-source  true
+                             :cljsbuild    {:builds {:frontend
+                                                     {:source-paths ["src-frontend/cljs-prod"]
+                                                      :compiler     {:optimizations :advanced
+                                                                     :pretty-print  false}}}}}
+
+             :backend-prod  {:env         {:production true}
+                             :omit-source true
+                             :cljsbuild   {:builds {:backend
+                                                    {:source-paths ["src-backend/cljs-prod"]
+                                                     :compiler     {:optimizations :simple
+                                                                    :pretty-print  false}}}}}}
+  :aliases {"dev"  ["do" "clean," "with-profile" "backend-dev" "cljsbuild" "once" "backend," "with-profile" "frontend-dev" "figwheel"]
+            "prod" ["do" "clean," "with-profile" "backend-prod" "cljsbuild" "once" "backend," "with-profile" "frontend-prod" "figwheel"]})

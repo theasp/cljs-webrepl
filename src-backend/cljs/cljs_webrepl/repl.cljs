@@ -15,11 +15,32 @@
                           ["/src/cljs" "/js/compiled/out"]
                           replumb-io/fetch-file!)
          {:no-pr-str-on-value true
-          :warning-as-error   true
+          :warning-as-error   false
           :verbose            false}))
 
 (def current-ns replumb-repl/current-ns)
 
+(defn native? [obj]
+  (or (nil? obj) (string? obj) (number? obj) (keyword? obj) (coll? obj)))
+
+
+(defn obj->map* [obj acc key obj->map]
+  (let [value (aget obj key)]
+    (if (fn? value)
+      acc
+      (cond
+        (native? value) (assoc acc (keyword key) value)
+        (object? value) (obj->map obj)
+        :else           (assoc acc (keyword key) value)))))
+
+(defn- obj->map
+  "Workaround for `TypeError: Cannot convert object to primitive value`s
+  caused by `(js->clj (.-body  exp-req) :keywordize-keys true)` apparently
+  failing to correctly identify `(.-body exp-req)` as an object. Not sure
+  what's causing this problem."
+  [o]
+  (let [obj->map #(obj->map* o % % obj->map)]
+    (reduce obj->map* nil (js-keys o))))
 
 (defn err->map [err]
   (when err
@@ -27,8 +48,14 @@
     {:message (.-message err)
      :data    (.-data err)}))
 
+(defn fix-value [value]
+  (cond (native? value) value
+        (object? value) (obj->map value)
+        :default        (str value)))
+
 (defn fix-result [result]
   (-> result
+      (update :value fix-value)
       (update :error err->map)))
 
 (defn on-repl-eval [[num expression] from-repl repl-opts]
@@ -38,6 +65,7 @@
         result-fn #(put! from-repl [:repl/result num (replumb-repl/current-ns) (fix-result %)])]
     (binding [cljs.core/*print-newline* true
               cljs.core/*print-fn*      print-fn]
+      (debugf "REPL: %s" expression)
       ;; Use the 3rd argument to put! so the :init event is sent first
       (replumb/read-eval-call repl-opts result-fn expression))))
 
@@ -46,7 +74,7 @@
     (put! to-repl [:repl/eval nil "true"])
     (loop []
       (when-let [msg (<! to-repl)]
-        (condp = (first msg)
+        (case (first msg)
           :repl/eval (on-repl-eval (rest msg) from-repl repl-opts)
           (warnf "Unknown REPL input event: %s" msg))
         (recur)))
