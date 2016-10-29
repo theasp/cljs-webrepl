@@ -23,8 +23,9 @@
            (t/read reader)))
 
 (defn- serialize [writer msg]
-  (debugf "Serialize: %s %s"  (worker-type) msg)
+  (debugf "Serialize: %s %s" (worker-type) msg)
   (let [msg (t/write writer msg)]
+    (debugf "Serialized: %s %s" (worker-type) msg)
     (js-obj "msg" msg)))
 
 (defn- async-worker [& [target close-fn]]
