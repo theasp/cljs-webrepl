@@ -18,15 +18,14 @@
     :master))
 
 (defn- deserialize [reader event]
-  (let [transit (-> event (aget "data") (aget "transit"))]
-    (debugf "Deserialize: %s %s" (worker-type) transit)
+  (let [transit (aget event "data" "transit")]
+    (tracef "Deserialize: %s %s" (worker-type) transit)
     (t/read reader transit)))
 
 (defn- serialize [writer msg]
-  (debugf "Serialize: %s %s" (worker-type) msg)
-  (let [msg (t/write writer msg)]
-    (debugf "Serialized: %s %s" (worker-type) msg)
-    (js-obj "transit" msg)))
+  (tracef "Serialize: %s %s" (worker-type) msg)
+  (let [transit (t/write writer msg)]
+    (js-obj "transit" transit)))
 
 (defn post-message [target writer msg]
   (try
@@ -43,7 +42,7 @@
         writer     (t/writer :json)
 
         finally-fn (fn []
-                     (debugf "Cleaning up WebWorker %s" (worker-type))
+                     (infof "Cleaning up WebWorker %s" (worker-type))
                      (close! input-ch)
                      (close! output-ch)
                      (when close-fn
