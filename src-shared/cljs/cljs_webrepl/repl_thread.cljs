@@ -18,14 +18,7 @@
     :master))
 
 (defn- deserialize [reader event]
-  (let [data    (.-data event)
-        transit (aget data "transit")]
-    (debugf "Deserialize: Event:")
-    (js/console.log event)
-    (debugf "Deserialize: Data:")
-    (js/console.log data)
-    (debugf "Deserialize: Transit:")
-    (js/console.log transit)
+  (let [transit (-> event (aget "data") (aget "transit"))]
     (debugf "Deserialize: %s %s" (worker-type) transit)
     (t/read reader transit)))
 
