@@ -68,7 +68,7 @@
     (go
       (loop []
         (when-let [msg (<! input-ch)]
-          (post-msg target writer msg)
+          (post-message target writer msg)
           (recur)))
       (finally-fn))
     {:input-ch  input-ch
