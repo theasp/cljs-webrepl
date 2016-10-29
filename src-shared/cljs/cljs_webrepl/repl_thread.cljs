@@ -28,6 +28,12 @@
     (debugf "Serialized: %s %s" (worker-type) msg)
     (js-obj "msg" msg)))
 
+(defn post-message [target writer msg]
+  (try
+    (.postMessage target (serialize writer msg))
+    (catch js/Error e
+      (.postMessage target (serialize writer [:webworker/error nil (str e)])))))
+
 (defn- async-worker [& [target close-fn]]
   (let [is-worker? (not (some? target))
         target     (or target js/self)
@@ -62,10 +68,7 @@
     (go
       (loop []
         (when-let [msg (<! input-ch)]
-          (try
-            (.postMessage target (serialize writer msg))
-            (catch js/Error e
-              (.postMessage target (serialize writer [:webworker/error nil (str e)]))))
+          (post-msg target writer msg)
           (recur)))
       (finally-fn))
     {:input-ch  input-ch
