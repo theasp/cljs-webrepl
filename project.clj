@@ -8,7 +8,6 @@
                  [org.clojure/clojurescript "1.9.293"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [com.taoensso/timbre "4.7.4"]
-                 [environ "1.1.0"]
                  [figwheel "0.5.8"]
                  [fipp "0.6.6"]
                  [hiccup "1.0.5"]
@@ -17,8 +16,7 @@
                  [reagent-utils "0.2.0"]
                  [replumb "0.2.4"]]
 
-  :plugins [[lein-environ "1.0.2"]
-            [lein-cljsbuild "1.1.4"]
+  :plugins [[lein-cljsbuild "1.1.4"]
             [lein-asset-minifier "0.2.7"]]
 
   :min-lein-version "2.5.0"
@@ -66,14 +64,11 @@
                                             :css-dirs         ["resources/public/css"]
                                             :load-all-builds  true}
 
-                             :env          {:dev true}
-
                              :cljsbuild    {:builds {:frontend
                                                      {:source-paths ["src-frontend/cljs-dev"]
                                                       :compiler     {:source-map true
                                                                      :main       cljs-webrepl.dev}}}}}
-             :backend-dev   {:env       {:dev true}
-                             :cljsbuild {:builds {:backend
+             :backend-dev   {:cljsbuild {:builds {:backend
                                                   {:source-paths ["src-backend/cljs-dev"]
                                                    :compiler     {:source-map "target/cljsbuild/public/js/repl-thread.js.map"
                                                                   :main       cljs-webrepl.repl-thread-dev}}}}}
@@ -82,18 +77,16 @@
                                             [cljsjs/material "1.2.1-0"]
                                             [cljsjs/codemirror "5.19.0-0"]]
                              :hooks        [minify-assets.plugin/hooks]
-                             :env          {:production true}
                              :omit-source  true
                              :cljsbuild    {:builds {:frontend
                                                      {:source-paths ["src-frontend/cljs-prod"]
                                                       :compiler     {:optimizations :advanced
                                                                      :pretty-print  false}}}}}
 
-             :backend-prod  {:env         {:production true}
-                             :omit-source true
+             :backend-prod  {:omit-source true
                              :cljsbuild   {:builds {:backend
                                                     {:source-paths ["src-backend/cljs-prod"]
-                                                     :compiler     {:optimizations :simple
+                                                     :compiler     {:optimizations :whitespace
                                                                     :pretty-print  false}}}}}}
   :aliases {"dev"  ["do" "clean," "with-profile" "backend-dev" "cljsbuild" "once" "backend," "with-profile" "frontend-dev" "figwheel"]
-            "prod" ["do" "clean," "with-profile" "backend-prod" "cljsbuild" "once" "backend," "with-profile" "frontend-prod" "cljsbuild" "once"]})
+            "prod" ["do" "clean," "with-profile" "backend-prod" "cljsbuild" "once" "backend," "with-profile" "frontend-prod" "cljsbuild" "once" "frontend"]})
