@@ -105,6 +105,10 @@ hr.border {
   padding-left: 16px;
 }
 
+.error {
+  color: #f00;
+}
+
 .card-data, .padding-right {
   padding-right: 16px;
 }

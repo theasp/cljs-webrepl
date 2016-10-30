@@ -261,8 +261,13 @@
        (if (string? value)
          [editor/code (str "\"" value "\"")]
          [editor/code (pprint-str value)])
-       [editor/code (pprint-str error)])
-     [editor/code "..."])])
+       [:div.error
+        (when-not (= "ERROR" (:message error))
+          [:div.error (:message error)])
+        (when (:cause error)
+          [:div.error (:cause error)])])
+     [mdl/upgrade
+      [:div.mdl-progress.mdl-js-progress.mdl-progress__indeterminate {:style {:width "100%"}}]])])
 
 (defn history-card
   [{:keys [state columns] :as props} {:keys [ns expression result output] :as history-item}]
