@@ -9,7 +9,7 @@
                  [com.cognitect/transit-cljs "0.8.239"]
                  [com.taoensso/timbre "4.7.4"]
                  [figwheel "0.5.8"]
-                 [fipp "0.6.6"]
+                 [fipp "0.6.7"]
                  [hiccup "1.0.5"]
                  [lein-doo "0.1.7"]
                  [reagent "0.6.0"]
