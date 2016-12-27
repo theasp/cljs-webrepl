@@ -27,18 +27,18 @@ fi
 # Make new gh-pages branch
 git checkout --orphan gh-pages
 
-# Move everything to .build
-rm -rf .build
-mkdir .build
-mv * .build
+# Move everything to dist
+rm -rf dist
+mkdir dist
+mv * dist
 
 # Move what we want into place
-mv .build/resources/public/* .
-mv .build/target/cljsbuild/public/* .
+mv dist/resources/public/* .
+mv dist/target/cljsbuild/public/*.min.js .
 
 # Remove the old files
 git rm --cached -r .
-rm -rf .build
+rm -rf dist
 
 # Add google tag
 perl -p -i -e "s%<!-- GOOGLETAG -->%${GOOGLETAG}%" index.html
