@@ -22,70 +22,80 @@
 
   :min-lein-version "2.5.0"
 
-  :clean-targets ^{:protect false} [:target-path
-                                    [:cljsbuild :builds :frontend :compiler :output-dir]
-                                    [:cljsbuild :builds :frontend :compiler :output-to]]
-
   :resource-paths ["resources" "target/cljsbuild"]
 
   :minify-assets  {:assets
                    {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
 
-  :cljsbuild {:builds {:frontend
-                       {:source-paths ["src-frontend/cljs" "src-shared/cljs"]
-                        :compiler     {:output-to      "target/cljsbuild/public/js/frontend.js"
-                                       :output-dir     "target/cljsbuild/public/js/frontend"
-                                       :asset-path     "js/frontend"
-                                       :main           cljs-webrepl.frontend
-                                       :static-fns     true
-                                       :optimizations  :none
-                                       :pretty-print   true
-                                       :parallel-build true}}
 
-                       :backend
-                       {:source-paths ["src-backend/cljs" "src-shared/cljs"]
-                        :compiler     {:output-to      "target/cljsbuild/public/js/backend.js"
-                                       :output-dir     "target/cljsbuild/public/js/backend"
-                                       :asset-path     "js/backend"
-                                       :main           cljs-webrepl.backend
-                                       :static-fns     true
-                                       :optimizations  :whitespace
-                                       :pretty-print   true
-                                       :parallel-build true}}}}
+  :profiles {:frontend {:dependencies [[cljsjs/clipboard "1.5.13-0"]
+                                       [cljsjs/material "1.2.1-0"]
+                                       [cljsjs/codemirror "5.21.0-1"]]
 
-  :profiles {:frontend-dev  {:dependencies [[cljsjs/clipboard "1.5.9-0"]
-                                            [cljsjs/material "1.2.1-0"]
-                                            [cljsjs/codemirror "5.19.0-0"]]
+                        :clean-targets ^{:protect false} [:target-path
+                                                          [:cljsbuild :builds :frontend-dev :compiler :output-to]
+                                                          [:cljsbuild :builds :frontend-dev :compiler :output-dir]
+                                                          [:cljsbuild :builds :frontend-min :compiler :output-to]]
 
-                             :plugins      [[lein-figwheel "0.5.8"]]
+                        :cljsbuild {:builds {:frontend-dev
+                                             {:source-paths ["src-frontend/cljs" "src-frontend/cljs-dev" "src-shared/cljs" ]
+                                              :compiler     {:output-to      "target/cljsbuild/public/js/frontend.js"
+                                                             :output-dir     "target/cljsbuild/public/js/frontend"
+                                                             :source-map     true
+                                                             :asset-path     "js/frontend"
+                                                             :main           cljs-webrepl.frontend
+                                                             :optimizations  :none
+                                                             :pretty-print   true
+                                                             :parallel-build true}
+                                              :figwheel     {:websocket-url "wss://figwheel.industrial.gt0.ca/figwheel-ws"}}
 
-                             :figwheel     {:http-server-root "public"
-                                            :server-port      3449
-                                            :nrepl-port       7001
-                                            :css-dirs         ["resources/public/css"]
-                                            :load-all-builds  true}
+                                             :frontend-min
+                                             {:source-paths ["src-frontend/cljs" "src-frontend/cljs-prod" "src-shared/cljs" ]
+                                              :compiler     {:output-to      "target/cljsbuild/public/js/frontend.min.js"
+                                                             :asset-path     "js/frontend"
+                                                             :main           cljs-webrepl.frontend
+                                                             :optimizations  :advanced
+                                                             :pretty-print   false
+                                                             :parallel-build true}}}}
 
-                             :cljsbuild    {:builds {:frontend
-                                                     {:source-paths ["src-frontend/cljs-dev"]
-                                                      :compiler     {:source-map true}}}}}
-             :backend-dev   {:cljsbuild {:builds {:backend
-                                                  {:source-paths ["src-backend/cljs-dev"]
-                                                   :compiler     {:source-map "target/cljsbuild/public/js/backend.js.map"}}}}}
+                        :plugins [[lein-figwheel "0.5.8"]]
 
-             :frontend-prod {:dependencies [[cljsjs/clipboard "1.5.9-0"]
-                                            [cljsjs/material "1.2.1-0"]
-                                            [cljsjs/codemirror "5.19.0-0"]]
-                             :hooks        [minify-assets.plugin/hooks]
-                             :omit-source  true
-                             :cljsbuild    {:builds {:frontend
-                                                     {:source-paths ["src-frontend/cljs-prod"]
-                                                      :compiler     {:optimizations :advanced
-                                                                     :pretty-print  false}}}}}
+                        :figwheel {:http-server-root "public"
+                                   :server-port      3449
+                                   :nrepl-port       7001
+                                   :css-dirs         ["resources/public/css"]}}
 
-             :backend-prod  {:omit-source true
-                             :cljsbuild   {:builds {:backend
-                                                    {:source-paths ["src-backend/cljs-prod"]
-                                                     :compiler     {:optimizations :simple
-                                                                    :pretty-print  false}}}}}}
-  :aliases {"dev"  ["do" "clean," "with-profile" "backend-dev" "cljsbuild" "once" "backend," "with-profile" "frontend-dev" "figwheel"]
-            "prod" ["do" "clean," "with-profile" "backend-prod" "cljsbuild" "once" "backend," "with-profile" "frontend-prod" "cljsbuild" "once" "frontend"]})
+             :backend {:clean-targets ^{:protect false} [:target-path
+                                                         [:cljsbuild :builds :backend-dev :compiler :output-to]
+                                                         [:cljsbuild :builds :backend-dev :compiler :output-dir]
+                                                         [:cljsbuild :builds :backend-dev :compiler :source-map]
+                                                         [:cljsbuild :builds :backend-min :compiler :output-to]]
+
+                       :cljsbuild {:builds {:backend-dev
+                                            {:source-paths ["src-backend/cljs" "src-backend/cljs-dev" "src-shared/cljs"]
+                                             :compiler     {:output-to      "target/cljsbuild/public/js/backend.js"
+                                                            :output-dir     "target/cljsbuild/public/js/backend"
+                                                            :source-map     "target/cljsbuild/public/js/backend.js.map"
+                                                            :asset-path     "js/backend"
+                                                            :main           cljs-webrepl.backend
+                                                            :static-fns     true
+                                                            :optimizations  :whitespace
+                                                            :pretty-print   true
+                                                            :parallel-build true}}
+
+                                            :backend-min
+                                            {:source-paths ["src-backend/cljs" "src-backend/cljs-prod" "src-shared/cljs"]
+                                             :compiler     {:output-to      "target/cljsbuild/public/js/backend.min.js"
+                                                            :asset-path     "js/backend"
+                                                            :main           cljs-webrepl.backend
+                                                            :static-fns     true
+                                                            :optimizations  :simple
+                                                            :pretty-print   false
+                                                            :parallel-build true}}}}}}
+
+  :aliases {"clean"             ["do" "with-profile" "backend" "clean," "with-profile" "frontend" "clean"]
+            "build"             ["do" "with-profile" "backend" "cljsbuild" "once," "with-profile" "frontend" "cljsbuild" "once"]
+            "build-dev"         ["do" "with-profile" "backend" "cljsbuild" "once" "backend-dev," "with-profile" "frontend" "cljsbuild" "once" "frontend-dev"]
+            "build-backend-dev" ["do" "with-profile" "backend" "cljsbuild" "auto" "backend-dev,"]
+            "build-min"         ["do" "with-profile" "backend" "cljsbuild" "once" "backend-min," "with-profile" "frontend" "cljsbuild" "once" "frontend-min"]
+            "figwheel"          ["do" "with-profile" "backend" "cljsbuild" "once," "with-profile" "frontend" "figwheel"]})
