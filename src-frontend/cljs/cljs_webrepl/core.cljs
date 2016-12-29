@@ -61,6 +61,10 @@
   (-> (with-out-str (fipp/pprint data))
       (str/trim-newline)))
 
+(defn unescape-string [data]
+  (-> (println-str data)
+      (str/trim-newline)))
+
 (defn trigger
   "Returns a reagent class that can be used to easily add triggers
   from the map in `props`, such as :component-did-mount.  See
@@ -183,8 +187,8 @@
          :cursor 0
          :input ""))
 
-(defn eval-input [state]
-  (let [expression (str/trim (:input @state))]
+(defn eval-input [state input]
+  (let [expression (str/trim input)]
     (when-not (str/blank? expression)
       (eval-str! expression)
       (swap! state assoc :ready? false :input "" :cursor 0))))
@@ -230,16 +234,15 @@
         "Copy Output"])
      [clipboard
       [:li.mdl-menu__item
-       {:data-clipboard-text (if (string? (:value result))
-                               (:value result)
-                               (pprint-str (:value result)))}
+       {:data-clipboard-text (pr-str (:value result))}
        "Copy Result"]]]]])
 
 (defn history-card-expression [props ns expression]
-  [:div.card-data.expression
-   [:div.codeMirror-lines {:style {:float :left}} [:code (str ns "=>")]]
+  [:div.mdl-card__title
    [:div
-    [editor/code  expression]]])
+    [:code.CodeMirror-lines (str ns "=>")]]
+   [:div
+    [editor/code expression]]])
 
 (defn history-card-output [props output]
   [:div
@@ -247,23 +250,41 @@
     [editor/text (str/trim-newline output)]]
    [:hr.border]])
 
+(defn render-value [value]
+  (cond
+    (string? value)
+    [editor/code (-> value unescape-string pprint-str)]
+
+    (map? value)
+    (case (:type value)
+      :hiccup (:content value)
+      [editor/code (pprint-str value)])
+
+    :default
+    [editor/code (pprint-str value)]))
+
+(defn render-error [error]
+  [:pre.error
+   (or (:stack error)
+       (if (and (:message error) (not= "ERROR" (:message error)))
+         (:message error)
+         (str (:cause error))
+         #_(or (str (:cause error)) (str error))))])
+
+
+(defn render-progress []
+  [mdl/upgrade
+   [:div.mdl-progress.mdl-js-progress.mdl-progress__indeterminate {:style {:width "100%"}}]])
+
 (defn history-card-result [props {:keys [success? value error] :as result}]
   [:div.card-data.result
    (if result
      (if success?
-       (if (string? value)
-         [editor/code (str "\"" value "\"")]
-         [editor/code (pprint-str value)])
-       [:div.error
-        (when-not (= "ERROR" (:message error))
-          [:div.error (:message error)])
-        (when (:cause error)
-          [:div.error (:cause error)])])
-     [mdl/upgrade
-      [:div.mdl-progress.mdl-js-progress.mdl-progress__indeterminate {:style {:width "100%"}}]])])
+       [render-value value]
+       [render-error error])
+     [render-progress])])
 
-(defn history-card
-  [{:keys [state columns] :as props} {:keys [ns expression result output] :as history-item}]
+(defn history-card [{:keys [state columns] :as props} {:keys [ns expression result output] :as history-item}]
   [:div
    {:class (str "mdl-cell " (card-size-class columns))}
    [:div.mdl-card.mdl-shadow--2dp
@@ -308,10 +329,6 @@
      [:div.flex-h
       [repl-input props]
       [run-button props]]]]])
-
-(defn input-ok? [{:keys [history]}]
-  (or (= (count history) 0)
-      (some? (-> history last second :result))))
 
 
 (defn history [props]
