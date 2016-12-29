@@ -109,12 +109,17 @@
   (when num
     (swap! state update-in [:history num] assoc :error err)))
 
+(defn on-repl-crash [state num [err]]
+  (swap! state assoc :crashed? true :ready? false)
+  (show-reset-dialog))
+
 (defn on-repl-event [state [name num & value]]
   (condp = name
-    :repl/eval   (on-repl-eval state num value)
-    :repl/result (on-repl-result state num value)
-    :repl/error  (on-repl-error state num value)
-    :repl/print  (on-repl-print state num value)
+    :repl/eval       (on-repl-eval state num value)
+    :repl/result     (on-repl-result state num value)
+    :repl/error      (on-repl-error state num value)
+    :repl/print      (on-repl-print state num value)
+    :webworker/error (on-repl-crash state num value)
     (warnf "Unknown repl event: %s %s" name value)))
 
 (defn repl-event-loop [state from-repl]
@@ -143,6 +148,7 @@
         to-eval                     (chan)]
     (swap! state #(-> %
                       (merge default-state)
+                      (assoc :running? true :crashed? false :ready? false)
                       (assoc :repl {:to-repl   to-eval
                                     :from-repl from-repl})))
     (repl-event-loop state from-repl)
@@ -317,12 +323,15 @@
       (for [[num history-item] (:history @state)]
         ^{:key num}
         [history-card props (assoc history-item :num num)]))
-     (when (input-ok? @state)
+     (when (:ready? @state)
        [input-card props])]]])
 
 
 (defn reset-dialog [{:keys [state]}]
   [:dialog.mdl-dialog {:id "reset-dialog"}
+   (when (:crashed? @state)
+     [:div.mdl-dialog__title
+      [:p "The REPL has crashed!"]])
    [:div.mdl-dialog__content
     [:p "Reset REPL? All data will be lost."]]
    [:div.mdl-dialog__actions
@@ -333,6 +342,20 @@
      "Reset"]
     [:button.mdl-button
      {:on-click #(close-dialog "reset-dialog")}
+     "Cancel"]]])
+
+(defn crash-dialog [{:keys [state]}]
+  [:dialog.mdl-dialog {:id "crash-dialog"}
+   [:div.mdl-dialog__content
+    [:p "The REPL has crashed!"]]
+   [:div.mdl-dialog__actions
+    [:button.mdl-button
+     {:on-click (fn []
+                  (close-dialog "crash-dialog")
+                  (reset-repl! state))}
+     "Reset"]
+    [:button.mdl-button
+     {:on-click #(close-dialog "crash-dialog")}
      "Cancel"]]])
 
 (defn about-dialog [props]
@@ -432,16 +455,16 @@
 
 (defn mount-root []
   (let [input (r/cursor state [:input])
-        props {:state             state
-               :input             input
-               :submit            #(eval-input state)
-               :history-prev      #(swap! state history-prev)
-               :history-next      #(swap! state history-next)
-               :more-columns      #(swap! state more-columns)
-               :less-columns      #(swap! state less-columns)
-               :github            #(set! (.-location js/window) "https://github.com/theasp/cljs-webrepl")
-               :title-icon        "images/cljs-white.svg"
-               :title             "Cljs-WebREPL"}]
+        props {:state        state
+               :input        input
+               :submit       #(eval-input state %)
+               :history-prev #(swap! state history-prev)
+               :history-next #(swap! state history-next)
+               :more-columns #(swap! state more-columns)
+               :less-columns #(swap! state less-columns)
+               :github       #(set! (.-location js/window) "https://github.com/theasp/cljs-webrepl")
+               :title-icon   "images/cljs-white.svg"
+               :title        "Cljs-WebREPL"}]
     (r/render [home-page props] (.getElementById js/document "app"))))
 
 (defn init! []
