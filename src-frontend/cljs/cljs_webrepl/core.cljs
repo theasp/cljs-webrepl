@@ -181,8 +181,6 @@
   (let [expression (str/trim (:input @state))]
     (when-not (str/blank? expression)
       (eval-str! expression)
-      (swap! state assoc :input "" :cursor 0))))
-
       (swap! state assoc :ready? false :input "" :cursor 0))))
 
 
