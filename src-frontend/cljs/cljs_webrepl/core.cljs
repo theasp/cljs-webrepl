@@ -305,7 +305,7 @@
   (let [ns           (:ns @state)
         is-init?     (some? ns)
         is-blank?    (str/blank? (:input @state))
-        is-disabled? (or (not is-init?) is-blank?)]
+        is-disabled? (or (not is-init?))]
     [:div.padding-left
      ^{:key is-disabled?}
      [mdl/upgrade
