@@ -34,8 +34,8 @@ mv * .dist
 
 # Move what we want into place
 mv .dist/resources/public/* .
-mv .dist/target/cljsbuild/public/js/*.min.js .
-for i in *.min.js; do
+mv .dist/target/cljsbuild/public/js .
+for i in js/*.min.js; do
   mv $i ${i%.min.js}.js
 done
 
