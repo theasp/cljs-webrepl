@@ -1,7 +1,8 @@
 (ns cljs-webrepl.repl-thread
   (:require
    [cljs.core.async :refer [chan close! timeout put! pipe]]
-   [cognitect.transit :as t]
+   [cognitect.transit :as transit]
+   [cljs.tools.reader :as reader]
    [taoensso.timbre :as timbre
     :refer-macros (tracef debugf infof warnf errorf)])
   (:require-macros
@@ -9,63 +10,126 @@
 
 (def script-name "js/backend.js")
 
+(def transit-writer (transit/writer :json))
+(def transit-reader (transit/reader :json))
+
+(defn write-transit [data]
+  (transit/write transit-writer data))
+
+(defn read-transit [data]
+  (transit/read transit-reader data))
+
+(defn write-edn [s]
+  (binding [*print-level*  nil
+            *print-length* nil
+            *print-dup*    true]
+    (pr-str s)))
+
+(extend-type js/Error
+  IPrintWithWriter
+  (-pr-writer [obj writer opts] (write-all writer "#error \"" (str obj) "\"")))
+
+
+(def edn-readers {'js    #(clj->js %)
+                  'uuid  #(when (string? %)
+                            (uuid %))
+                  'inst  #(when (string? %)
+                            (js/Date. %))
+                  'queue #(when (vector? %)
+                            (into cljs.core.PersistentQueue.EMPTY %))})
+
+(defn read-edn [s]
+  (binding [reader/*default-data-reader-fn* (fn [tag value] value)
+            reader/*data-readers*           edn-readers]
+    (reader/read-string s)))
+
 (defn worker? []
   (nil? js/self.document))
 
-(defn worker-type []
-  (if (worker?)
-    :worker
-    :master))
+(def thread-type (if (worker?)
+                   :worker
+                   :master))
 
-(defn- deserialize [reader event]
-  (let [transit (aget event "data" "transit")]
-    (tracef "Deserialize: %s %s" (worker-type) transit)
-    (t/read reader transit)))
+(defn read-transit-message [message]
+  (let [message (aget message "content")]
+    (try
+      (read-transit message)
+      (catch js/Error e
+        (errorf "read-transit-message: %s %s: %s" thread-type (:message e) message)
+        [:webworker/error nil e]))))
 
-(defn- serialize [writer msg]
-  (tracef "Serialize: %s %s" (worker-type) msg)
-  (let [transit (t/write writer msg)]
-    (js-obj "transit" transit)))
-
-(defn post-message [target writer msg]
+(defn write-transit-message [message]
   (try
-    (.postMessage target (serialize writer msg))
-    (catch js/Error e
-      (.postMessage target (serialize writer [:webworker/error nil (str e)])))))
+    (js-obj "format" "transit"
+            "content" (write-transit message))
+    (catch js/Error e nil)))
+
+(defn read-edn-message [message]
+  (let [message (aget message "content")]
+    (try
+      (read-edn message)
+      (catch js/Error e
+        (errorf "read-edn-message: %s %s %s" thread-type e message)
+        [:webworker/error nil e]))))
+
+(defn write-edn-message [message]
+  (try
+    (js-obj "format" "edn"
+            "content" (write-edn message))
+    (catch js/Error e nil)))
+
+(defn write-message [message]
+  #_(debugf "write-message: %s %s" thread-type (pr-str message))
+  (or (write-transit-message message)
+      (write-edn-message message)
+      (write-transit-message [:webworker/error nil (str "Unable to format message: " (pr message))])))
+
+(defn read-message [message]
+  #_(debugf "read-message: %s %s" thread-type (pr-str message))
+  (case (.-format message)
+    "json"    (read-transit-message message)
+    "transit" (read-transit-message message)
+    "edn"     (read-edn-message message)
+    [:webworker/error nil (str "Unknown message format: " (.-format message))]))
+
+(defn post-message [target message]
+  (let [message (write-message message)]
+    (debugf "post-message: %s %s" thread-type (pr-str message))
+    (.postMessage target message)))
+
+(defn on-message [output-ch message]
+  #_(debugf "on-message: %s %s" thread-type (pr-str message))
+  (if message
+    (put! output-ch (read-message message))
+    (warnf "on-message: No message %s" thread-type)))
+
+(defn on-error [output-ch err]
+  (errorf "on-error: %s %s" thread-type (pr-str err))
+  (put! output-ch [:webworker/error nil (pr-str err)]))
 
 (defn- async-worker [& [target close-fn]]
   (let [is-worker? (not (some? target))
         target     (or target js/self)
         input-ch   (chan)
         output-ch  (chan)
-        reader     (t/reader :json)
-        writer     (t/writer :json)
 
         finally-fn (fn []
-                     (infof "Cleaning up WebWorker %s" (worker-type))
+                     (debugf "Cleaning up WebWorker: %s" thread-type)
                      (close! input-ch)
                      (close! output-ch)
                      (when close-fn
                        (close-fn)))
-
         recv-fn    (fn [event]
-                     (when-let [msg (deserialize reader event)]
-                       (put! output-ch msg)))
-
+                     (on-message output-ch (aget event "data")))
         error-fn   (fn [err]
-                     (let [err {:message (.-message err)
-                                :file    (.-filename err)
-                                :line    (.-lineno err)
-                                :worker? (worker?)}]
-                       (errorf "WebWorker: %s" err)
-                       (put! output-ch [:webworker/error nil err])
-                       (finally-fn)))]
+                     (on-error output-ch err)
+                     (finally-fn))]
     (.addEventListener target "message" recv-fn)
     (.addEventListener target "error" error-fn)
     (go
       (loop []
-        (when-let [msg (<! input-ch)]
-          (post-message target writer msg)
+        (when-let [message (<! input-ch)]
+          (post-message target message)
           (recur)))
       (finally-fn))
     {:input-ch  input-ch
