@@ -179,8 +179,8 @@
     (if (> new-cursor 0)
       (assoc state
              :cursor new-cursor
-             :input (:expression (get history (- c new-cursor))))
-      state)))
+             :input (:expression (get history (- c new-cursor) "")))
+      (assoc state :input ""))))
 
 (defn clear-input [state]
   (assoc state
