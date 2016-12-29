@@ -51,6 +51,12 @@
       (.registerDialog js/dialogPolyfill dialog))
     (.showModal dialog)))
 
+(defn show-reset-dialog []
+  (show-dialog "reset-dialog"))
+
+(defn show-about-dialog []
+  (show-dialog "about-dialog"))
+
 (defn pprint-str [data]
   (-> (with-out-str (fipp/pprint data))
       (str/trim-newline)))
@@ -371,7 +377,7 @@
      {:on-click #(close-dialog "about-dialog")}
      "Ok"]]])
 
-(defn reset-repl-button [{:keys [show-reset-dialog]}]
+(defn reset-repl-button [props]
   [:button.mdl-button.mdl-js-button.mdl-js-ripple-effect
    {:on-click show-reset-dialog
     :style    {:color "#fff"}}
@@ -403,10 +409,10 @@
 (defn github-menu-item [{:keys [github]}]
   [:li.mdl-menu__item {:on-click github} "GitHub"])
 
-(defn about-menu-item [{:keys [show-about-dialog]}]
+(defn about-menu-item [props]
   [:li.mdl-menu__item {:on-click show-about-dialog} "About"])
 
-(defn reset-menu-item [{:keys [show-reset-dialog]}]
+(defn reset-menu-item [props]
   [:li.mdl-menu__item {:on-click show-reset-dialog} "Reset REPL"])
 
 (defn home-page-menu [props]
@@ -455,8 +461,6 @@
                :history-next      #(swap! state history-next)
                :more-columns      #(swap! state more-columns)
                :less-columns      #(swap! state less-columns)
-               :show-reset-dialog #(show-dialog "reset-dialog")
-               :show-about-dialog #(show-dialog "about-dialog")
                :github            #(set! (.-location js/window) "https://github.com/theasp/cljs-webrepl")
                :title-icon        "images/cljs-white.svg"
                :title             "Cljs-WebREPL"}]
