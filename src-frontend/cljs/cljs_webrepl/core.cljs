@@ -183,28 +183,8 @@
       (eval-str! expression)
       (swap! state assoc :input "" :cursor 0))))
 
-#_(defn input-key-down [state event]
-    (case (.-which event)
-      ;; Enter
-      13 (do (eval-input state)
-             (. event preventDefault))
       (swap! state assoc :ready? false :input "" :cursor 0))))
 
-      ;; Escape
-      27 (do (swap! state clear-input)
-             (. event preventDefault))
-
-      ;; Tab
-      9  (. event preventDefault)
-
-      ;; Up
-      38 (do (swap! state history-prev)
-             (. event preventDefault))
-
-      ;;Down
-      40 (do (swap! state history-next)
-             (. event preventDefault))
-      nil))
 
 (defn input-on-change [state event]
   (assoc state
