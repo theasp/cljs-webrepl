@@ -91,9 +91,9 @@
 (defn on-repl-result [state num [ns result]]
   (if num
     (swap! state #(-> %
-                      (assoc :ns ns)
+                      (assoc :ns ns :ready? true)
                       (update-in [:history num] assoc :result result)))
-    (swap! state assoc :ns ns)))
+    (swap! state assoc :ns ns :ready? true)))
 
 (defn on-repl-print [state num [s]]
   (when num
@@ -123,11 +123,13 @@
       (put! from-repl [:repl/eval num (:ns @state) expression])
       (put! to-repl [:repl/eval num expression])
       (recur (inc num)))
+    (swap! state assoc :running? false :ready? false :crashed? false)
     (close! to-eval)
     (close! to-repl)))
 
 (defn reset-repl! [state]
   (when-let [{:keys [from-repl to-repl]} (:repl @state)]
+    (swap! state assoc :running? false :ready? false :crashed? false)
     (close! from-repl)
     (close! to-repl))
 
@@ -180,6 +182,7 @@
       ;; Enter
       13 (do (eval-input state)
              (. event preventDefault))
+      (swap! state assoc :ready? false :input "" :cursor 0))))
 
       ;; Escape
       27 (do (swap! state clear-input)
@@ -350,10 +353,14 @@
 
 (defn about-dialog [props]
   [:dialog.mdl-dialog.mdl-dialog__wide {:id "about-dialog"}
-   [:h4.mdl-dialog__title "CLJS-WebREPL"]
+   [:h4.mdl-dialog__title (str "CLJS-WebREPL")]
    [:div.mdl-dialog__content
     [:p "A ClojureScript browser based REPL"]
     [:p (str "Using ClojureScript version " *clojurescript-version*)]
+    [:p
+     "Running: " (if (:running? @state) "Yes" "No") [:br]
+     "Ready: " (if (:ready? @state) "Yes" "No") [:br]
+     "Crashed: " (if (:crashed? @state) "Yes" "No")]
     [:h5 "License"]
     [:p
      "Copyright © 2016 Andrew Phillips, Dan Holmsand, Mike Fikes, David Nolen, Rich Hickey, Joel Martin & Contributors"]
