@@ -11,8 +11,7 @@ general:
 
 test:
   pre:
-    - lein with-profile frontend-prod cljsbuild once frontend
-    - lein with-profile backend-prod cljsbuild once backend
+    - lein build-min
 
 deployment:
   master:
