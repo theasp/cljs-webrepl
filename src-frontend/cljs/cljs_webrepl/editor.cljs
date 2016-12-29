@@ -8,92 +8,98 @@
    [taoensso.timbre :as timbre
     :refer-macros (tracef debugf infof warnf errorf)]))
 
-(defn codemirror-did-mount [node editor {:keys [focus? read-only? on-change on-key-down mode]} text]
+(defn cm-options [options]
+  (js-obj "readOnly" (:read-only? options false)
+          "height" (name (:height options :auto))
+          "autofocus" (:focus? options false)
+          "lineWrapping" (:line-wrap? options false)
+          "lineNumbers" (:line-numbers?  options false)
+          "mode" (name (:mode options :clojure))
+          "indentUnit" (:indent options 2)
+          "electricChars" (:electric-chars? options true)
+          "viewportMargin" (:viewport-margin options js/Infinity)
+          "extraKeys" (-> (:extra-keys options nil)
+                          (clj->js)
+                          (js/CodeMirror.normalizeKeyMap))))
+
+(defn cm-did-mount [node editor {:keys [on-change on-key-down] :as options} text]
   (let [element (-> node (r/dom-node))
-        opts    (js-obj "readOnly" read-only?
-                        "height" "auto"
-                        "autofocus" focus?
-                        "lineWrapping" true
-                        "lineNumbers" false
-                        "mode" (or mode "clojure")
-                        "value" text
-                        "indentUnit" 2
-                        "electricChars" true
-                        "viewportMargin" js/Infinity)
-        editor  (reset! editor (js/CodeMirror.fromTextArea element opts))]
+        cm-opts (cm-options options)
+        editor  (reset! editor (js/CodeMirror.fromTextArea element cm-opts))]
+    (.setValue editor text)
     (when on-change
       (.on editor "change" on-change))
     (when on-key-down
       (.on editor "keydown" on-key-down))))
 
-(defn codemirror-will-update [node editor [_ _ text]]
+(defn cm-will-update [node editor [_ _ text]]
+  (debugf "Update")
   (when-let [editor @editor]
-    (.setValue editor text)))
+    (.setValue editor text)
+    (.refresh editor)))
 
-(defn codemirror-will-unmount [node editor]
+(defn cm-will-unmount [node editor]
   (when-let [editor @editor]
     true)
   (reset! editor nil))
 
-(defn codemirror-render [_ text]
+(defn cm-render [_ text]
   [:textarea {:value text :read-only true}])
 
 (defn codemirror [props text]
   (let [editor (atom nil)]
     (r/create-class
      {:display-name           "codemirror"
-      :component-did-mount    #(codemirror-did-mount %1 editor props text)
-      :component-will-update  #(codemirror-will-update %1 editor %2)
-      :component-will-unmount #(codemirror-will-unmount %1 editor)
-      :reagent-render         codemirror-render})))
+      :component-did-mount    #(cm-did-mount %1 editor props text)
+      :component-will-update  #(cm-will-update %1 editor %2)
+      :component-will-unmount #(cm-will-unmount %1 editor)
+      :reagent-render         cm-render})))
 
 (defn editor-update [{:keys [state] :as props} editor change]
   (swap! state assoc :input (.getValue editor)))
 
-(defn editor-key-enter [{:keys [input submit] :as props} editor event]
-  (when (not (.-shiftKey event))
-    (when (or (.-ctrlKey event) (not (str/includes? @input "\n")))
-      (submit input)
-      (.preventDefault event))))
+(defn multi-line? [editor]
+  (-> (.getValue editor)
+      (str/includes? "\n")))
 
-(defn editor-key-up [{:keys [history-prev state] :as props} editor event]
-  (history-prev)
-  (.setValue editor (:input @state))
-  (.refresh editor)
-  (.preventDefault event))
+(defn make-submit [{:keys [submit] :as props}]
+  (fn [cm]
+    (submit (.getValue cm))))
 
-(defn editor-key-down [{:keys [history-next state] :as props} editor event]
-  (history-next)
-  (.setValue editor (:input @state))
-  (.refresh editor)
-  (.preventDefault event))
+(defn make-history-prev [{:keys [history-prev state] :as props}]
+  (fn [cm]
+    (history-prev)
+    (.setValue cm (:input (history-prev)))
+    (.refresh cm)))
 
-(def key-names {:enter 13
-                :up    38
-                :down  40})
+(defn make-history-next [{:keys [history-next state] :as props}]
+  (fn [cm]
+    (history-next)
+    (.setValue cm (:input (history-next)))
+    (.refresh cm)))
 
-(def key-code->name
-  (into {} (for [[k v] key-names] [v k])))
-
-(defn editor-key [props editor event]
-  (when-let [name (key-code->name (.-keyCode event))]
-    (case name
-      :enter (editor-key-enter props editor event)
-      :up    (editor-key-up props editor event)
-      :down  (editor-key-down props editor event)
-      nil)))
-
+(defn wrap-ignore-multi [f]
+  (fn [cm]
+    (if (multi-line? cm)
+      js/CodeMirror.Pass
+      (f cm))))
 
 (defn editor [props value]
-  (let [on-change (partial editor-update props)
-        on-key    (partial editor-key props)]
+  (let [history-next (make-history-next props)
+        history-prev (make-history-prev props)
+        submit       (make-submit props)
+        extra-keys   {:Up         (-> history-prev wrap-ignore-multi)
+                      :Down       (-> history-next wrap-ignore-multi)
+                      :Ctrl-Up    history-prev
+                      :Ctrl-Down  history-next
+                      :Enter      (-> submit wrap-ignore-multi)
+                      :Ctrl-Enter submit}]
     (fn []
       [codemirror
-       {:editable?   true
-        :numbers?    false
-        :focus?      true
-        :on-change   on-change
-        :on-key-down on-key}
+       {:editable?  true
+        :numbers?   false
+        :focus?     true
+        :extra-keys extra-keys}
        value])))
 
 (defn code [text]
