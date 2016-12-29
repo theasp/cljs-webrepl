@@ -15,7 +15,7 @@
                           ["/src/cljs" "/js/compiled/out"]
                           replumb-io/fetch-file!)
          {:no-pr-str-on-value true
-          :warning-as-error   false
+          :warning-as-error   true
           :verbose            false}))
 
 (def current-ns replumb-repl/current-ns)
@@ -33,7 +33,7 @@
       :else           (assoc acc (keyword key) value))))
 
 (defn- obj->map
-  "Workaround for `TypeError: Cannot convert object to primitive value`s
+  "Workaround for `TypeError: Cannot convert object to primitive values`
   caused by `(js->clj (.-body  exp-req) :keywordize-keys true)` apparently
   failing to correctly identify `(.-body exp-req)` as an object. Not sure
   what's causing this problem."
@@ -58,20 +58,14 @@
         (object? value) (obj->map value)
         :default        (str value)))
 
-(defn fix-result [result]
-  (-> result
-      (update :value fix-value)
-      (update :error err->map)))
-
 (defn on-repl-eval [[num expression] from-repl repl-opts]
+  (debugf "on-repl-eval: %s %s" num expression)
   (put! from-repl [:repl/eval num (replumb-repl/current-ns) expression])
 
   (let [print-fn  #(put! from-repl [:repl/print num %])
-        result-fn #(put! from-repl [:repl/result num (replumb-repl/current-ns) (fix-result %)])]
+        result-fn #(put! from-repl [:repl/result num (replumb-repl/current-ns) %])]
     (binding [cljs.core/*print-newline* true
               cljs.core/*print-fn*      print-fn]
-      (tracef "REPL: %s" expression)
-      ;; Use the 3rd argument to put! so the :init event is sent first
       (replumb/read-eval-call repl-opts result-fn expression))))
 
 (defn repl-loop [from-repl to-repl repl-opts]
