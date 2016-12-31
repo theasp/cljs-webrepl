@@ -28,9 +28,7 @@
         editor  (reset! editor (js/CodeMirror.fromTextArea element cm-opts))]
     (.setValue editor text)
     (when on-change
-      (.on editor "change" on-change))
-    (when on-key-down
-      (.on editor "keydown" on-key-down))))
+      (.on editor "change" on-change))))
 
 (defn cm-will-update [node editor [_ _ text]]
   (debugf "Update")
@@ -43,7 +41,7 @@
     true)
   (reset! editor nil))
 
-(defn cm-render [_ text]
+(defn cm-render [props text]
   [:textarea {:value text :read-only true}])
 
 (defn codemirror [props text]
@@ -62,16 +60,21 @@
   (-> (.getValue editor)
       (str/includes? "\n")))
 
-(defn make-submit [{:keys [submit] :as props}]
-  (fn [cm]
-    (submit (.getValue cm))))
+(defn wrap-on-change [{:keys [on-change]}]
+  (when on-change
+    (fn [cm]
+      (on-change (.getValue cm)))))
 
-(defn make-history-prev [{:keys [history-prev state] :as props}]
+(defn wrap-on-submit [{:keys [on-submit] :as props}]
+  (fn [cm]
+    (on-submit (.getValue cm))))
+
+(defn wrap-history-prev [{:keys [history-prev state] :as props}]
   (fn [cm]
     (.setValue cm (:input (history-prev)))
     (.refresh cm)))
 
-(defn make-history-next [{:keys [history-next state] :as props}]
+(defn wrap-history-next [{:keys [history-next state] :as props}]
   (fn [cm]
     (.setValue cm (:input (history-next)))
     (.refresh cm)))
@@ -82,23 +85,35 @@
       js/CodeMirror.Pass
       (f cm))))
 
-(defn editor [props value]
-  (let [history-next (make-history-next props)
-        history-prev (make-history-prev props)
-        submit       (make-submit props)
+(defn insert-pair [cm pair]
+  (debugf "I!")
+  (doto cm
+    (.replaceSelection "()")
+    (.execCommand "goCharLeft")))
+
+(defn editor [props text]
+  (let [on-change    (wrap-on-change props)
+        history-next (wrap-history-next props)
+        history-prev (wrap-history-prev props)
+        on-submit    (wrap-on-submit props)
         extra-keys   {:Up         (-> history-prev wrap-ignore-multi)
                       :Down       (-> history-next wrap-ignore-multi)
                       :Ctrl-Up    history-prev
                       :Ctrl-Down  history-next
-                      :Enter      (-> submit wrap-ignore-multi)
-                      :Ctrl-Enter submit}]
+                      :Enter      (-> on-submit wrap-ignore-multi)
+                      :Ctrl-Enter on-submit
+                      :Shift-9    #(insert-pair % "()")
+                      "["         #(insert-pair % "[]")
+                      "Shift-{"   #(insert-pair % "{}")
+                      "Shift-'"   #(insert-pair % "\"\"")}]
     (fn []
-      [codemirror
-       {:editable?  true
-        :numbers?   false
-        :focus?     true
-        :extra-keys extra-keys}
-       value])))
+      [codemirror (-> {:editable?  true
+                       :numbers?   false
+                       :focus?     true
+                       :extra-keys extra-keys
+                       :on-change  on-change}
+                      (merge (dissoc props :on-change)))
+       text])))
 
 (defn code [text]
   [codemirror {:read-only? true :mode "clojure"} text])
