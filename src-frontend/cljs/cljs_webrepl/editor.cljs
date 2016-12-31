@@ -102,7 +102,9 @@
                       :Enter      (-> on-submit wrap-ignore-multi)
                       :Ctrl-Enter on-submit
                       :Shift-9    #(insert-pair % "()")
+                      "("         #(insert-pair % "()")
                       "["         #(insert-pair % "[]")
+                      "{"         #(insert-pair % "{}")
                       "Shift-{"   #(insert-pair % "{}")
                       "Shift-'"   #(insert-pair % "\"\"")}]
     (fn []
