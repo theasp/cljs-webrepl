@@ -86,9 +86,8 @@
       (f cm))))
 
 (defn insert-pair [cm pair]
-  (debugf "I!")
   (doto cm
-    (.replaceSelection "()")
+    (.replaceSelection pair)
     (.execCommand "goCharLeft")))
 
 (defn editor [props text]
