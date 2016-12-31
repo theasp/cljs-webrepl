@@ -68,13 +68,11 @@
 
 (defn make-history-prev [{:keys [history-prev state] :as props}]
   (fn [cm]
-    (history-prev)
     (.setValue cm (:input (history-prev)))
     (.refresh cm)))
 
 (defn make-history-next [{:keys [history-next state] :as props}]
   (fn [cm]
-    (history-next)
     (.setValue cm (:input (history-next)))
     (.refresh cm)))
 
