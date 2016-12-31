@@ -194,10 +194,8 @@
       (swap! state assoc :ready? false :input "" :cursor 0))))
 
 
-(defn input-on-change [state event]
-  (assoc state
-         :cursor 0
-         :input (-> event .-target .-value)))
+(defn input-on-change [state value]
+  (assoc state :cursor 0 :input value))
 
 (defn scroll [node]
   (let [node (r/dom-node node)]
@@ -301,26 +299,26 @@
     [:div.mdl-cell.mdl-cell--12-col
      [:p "REPL initializing..."]]]])
 
-(defn run-button [{:keys [state submit] :as props}]
-  (let [ns           (:ns @state)
-        is-init?     (some? ns)
-        is-blank?    (str/blank? (:input @state))
-        is-disabled? (or (not is-init?))]
+(defn run-button [{:keys [state on-submit ready?] :as props}]
+  (let [disabled? (or ready? (str/blank? (:input @state)))]
     [:div.padding-left
-     ^{:key is-disabled?}
+     ^{:key disabled?}
      [mdl/upgrade
       [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-js-ripple-effect.mdl-button--colored
-       {:disabled is-disabled?
-        :on-click submit}
+       {:disabled disabled?
+        :on-click on-submit}
        [:i.material-icons "send"]]]]))
 
 (defn repl-input [{:keys [state] :as props}]
-  [mdl/upgrade
-   [:div.input-field.mdl-textfield.mdl-js-textfield.mdl-textfield--floating-label
-    [:div.mdl-textfield__label {:for "repl-input"}
-     (str (:ns @state) "=>")]
-    [:div.mdl-textfield__input {:id "repl-input"}
-     [editor/editor props (:input @state)]]]])
+  (let [on-change #(swap! state assoc :input %)
+        props     (assoc props :on-change on-change)]
+    (fn []
+      [mdl/upgrade
+       [:div.input-field.mdl-textfield.mdl-js-textfield.mdl-textfield--floating-label
+        [:div.mdl-textfield__label {:for "repl-input"}
+         (str (:ns @state) "=>")]
+        [:div.mdl-textfield__input {:id "repl-input"}
+         [editor/editor props (:input @state)]]]])))
 
 (defn input-card [props num]
   [:div.mdl-cell.mdl-cell--12-col
@@ -474,7 +472,7 @@
   (let [input (r/cursor state [:input])
         props {:state        state
                :input        input
-               :submit       #(eval-input state %)
+               :on-submit    #(eval-input state %)
                :history-prev #(swap! state history-prev)
                :history-next #(swap! state history-next)
                :more-columns #(swap! state more-columns)
