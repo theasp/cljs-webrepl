@@ -306,7 +306,7 @@
      [mdl/upgrade
       [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-js-ripple-effect.mdl-button--colored
        {:disabled disabled?
-        :on-click on-submit}
+        :on-click #(on-submit (:input @state))}
        [:i.material-icons "send"]]]]))
 
 (defn repl-input [{:keys [state] :as props}]
