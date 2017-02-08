@@ -6,7 +6,7 @@
    [reagent.core :as r :refer [atom]]
    [fipp.edn :as fipp]
    [cljs-webrepl.repl-thread :as repl-thread]
-   [cljs-webrepl.mdl :as mdl]
+   [ca.gt0.theasp.reagent-mdl :as mdl]
    [cljs-webrepl.editor :as editor]
    [taoensso.timbre :as timbre
     :refer-macros (tracef debugf infof warnf errorf)])
@@ -192,7 +192,6 @@
     (when-not (str/blank? expression)
       (eval-str! expression)
       (swap! state assoc :ready? false :input "" :cursor 0))))
-
 
 (defn input-on-change [state value]
   (assoc state :cursor 0 :input value))

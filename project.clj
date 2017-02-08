@@ -21,14 +21,11 @@
             [lein-asset-minifier "0.2.7"]]
 
   :min-lein-version "2.5.0"
-
   :resource-paths ["resources" "target/cljsbuild"]
+  :minify-assets  {:assets {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
 
-  :minify-assets  {:assets
-                   {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
-
-
-  :profiles {:frontend {:dependencies [[cljsjs/clipboard "1.5.13-0"]
+  :profiles {:frontend {:dependencies [[ca.gt0.theasp/reagent-mdl "0.1.0-SNAPSHOT"]
+                                       [cljsjs/clipboard "1.5.13-0"]
                                        [cljsjs/material "1.2.1-0"]
                                        [cljsjs/codemirror "5.21.0-1"]]
 
@@ -93,9 +90,20 @@
                                                             :pretty-print   false
                                                             :parallel-build true}}}}}}
 
-  :aliases {"clean"             ["do" "with-profile" "backend" "clean," "with-profile" "frontend" "clean"]
-            "build"             ["do" "with-profile" "backend" "cljsbuild" "once," "with-profile" "frontend" "cljsbuild" "once"]
-            "build-dev"         ["do" "with-profile" "backend" "cljsbuild" "once" "backend-dev," "with-profile" "frontend" "cljsbuild" "once" "frontend-dev"]
-            "build-backend-dev" ["do" "with-profile" "backend" "cljsbuild" "auto" "backend-dev,"]
-            "build-min"         ["do" "with-profile" "backend" "cljsbuild" "once" "backend-min," "with-profile" "frontend" "cljsbuild" "once" "frontend-min"]
-            "figwheel"          ["do" "with-profile" "backend" "cljsbuild" "once," "with-profile" "frontend" "figwheel"]})
+  :aliases {"clean"
+            ["do" "with-profile" "backend" "clean," "with-profile" "frontend" "clean"]
+
+            "build"
+            ["do" "with-profile" "backend" "cljsbuild" "once," "with-profile" "frontend" "cljsbuild" "once"]
+
+            "build-dev"
+            ["do" "with-profile" "backend" "cljsbuild" "once" "backend-dev," "with-profile" "frontend" "cljsbuild" "once" "frontend-dev"]
+
+            "build-backend-dev"
+            ["do" "with-profile" "backend" "cljsbuild" "auto" "backend-dev,"]
+
+            "build-min"
+            ["do" "with-profile" "backend" "cljsbuild" "once" "backend-min," "with-profile" "frontend" "cljsbuild" "once" "frontend-min"]
+
+            "figwheel"
+            ["do" "with-profile" "backend" "cljsbuild" "once," "with-profile" "frontend" "figwheel"]})
