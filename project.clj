@@ -11,14 +11,15 @@
                  [figwheel "0.5.8"]
                  [fipp "0.6.7"]
                  [hiccup "1.0.5"]
-                 [lein-doo "0.1.7"]
+                 [doo "0.1.7"]
                  [reagent "0.6.0"]
                  [reagent-utils "0.2.0"]
                  [replumb "0.2.4"]
                  [com.cemerick/piggieback "0.2.1"]]
 
   :plugins [[lein-cljsbuild "1.1.4"]
-            [lein-asset-minifier "0.2.7"]]
+            [lein-asset-minifier "0.2.7"]
+            [lein-doo "0.1.7"]]
 
   :min-lein-version "2.5.0"
   :resource-paths ["resources" "target/cljsbuild"]
