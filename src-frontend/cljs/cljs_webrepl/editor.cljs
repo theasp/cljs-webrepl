@@ -22,7 +22,7 @@
                           (clj->js)
                           (js/CodeMirror.normalizeKeyMap))))
 
-(defn cm-did-mount [node editor {:keys [on-change on-key-down] :as options} text]
+(defn cm-did-mount [node editor {:keys [on-input on-change on-key-down] :as options} text]
   (let [element (r/dom-node node)
         cm-opts (cm-options options)
         editor  (reset! editor (js/CodeMirror.fromTextArea element cm-opts))]
