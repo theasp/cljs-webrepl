@@ -23,12 +23,14 @@
                           (js/CodeMirror.normalizeKeyMap))))
 
 (defn cm-did-mount [node editor {:keys [on-change on-key-down] :as options} text]
-  (let [element (-> node (r/dom-node))
+  (let [element (r/dom-node node)
         cm-opts (cm-options options)
         editor  (reset! editor (js/CodeMirror.fromTextArea element cm-opts))]
     (.setValue editor text)
     (when on-change
-      (.on editor "change" on-change))))
+      (.on editor "change" on-change))
+    (when on-input
+      (.on editor "input" on-input))))
 
 (defn cm-will-update [node editor [_ _ text]]
   (debugf "Update")
