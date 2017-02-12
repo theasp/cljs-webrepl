@@ -27,7 +27,6 @@
 
   :profiles {:frontend {:dependencies [[ca.gt0.theasp/reagent-mdl "0.1.0-SNAPSHOT"]
                                        [cljsjs/clipboard "1.5.13-0"]
-                                       [cljsjs/material "1.2.1-0"]
                                        [cljsjs/codemirror "5.21.0-2"]]
 
                         :clean-targets ^{:protect false} [:target-path
