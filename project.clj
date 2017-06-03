@@ -5,14 +5,14 @@
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.9.542"]
+                 [org.clojure/clojurescript "1.9.562"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [com.taoensso/timbre "4.10.0"]
                  [figwheel "0.5.10"]
                  [fipp "0.6.9"]
                  [hiccup "1.0.5"]
                  [doo "0.1.7"]
-                 [reagent "0.6.1"]
+                 [reagent "0.6.2"]
                  [reagent-utils "0.2.1"]
                  [replumb "0.2.4"]
                  [com.cemerick/piggieback "0.2.1"]]
