@@ -5,17 +5,17 @@
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.9.562"]
+                 [org.clojure/clojurescript "1.9.671"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [com.taoensso/timbre "4.10.0"]
-                 [figwheel "0.5.10"]
+                 [figwheel "0.5.11"]
                  [fipp "0.6.9"]
                  [hiccup "1.0.5"]
                  [doo "0.1.7"]
-                 [reagent "0.6.2"]
+                 [reagent "0.7.0"]
                  [reagent-utils "0.2.1"]
                  [replumb "0.2.4"]
-                 [com.cemerick/piggieback "0.2.1"]]
+                 [com.cemerick/piggieback "0.2.2"]]
 
   :plugins [[lein-cljsbuild "1.1.4"]
             [lein-asset-minifier "0.2.7"]
