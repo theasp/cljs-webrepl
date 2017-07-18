@@ -37,7 +37,7 @@ jobs:
       - save_cache:
           paths:
             - ~/.m2
-            - /usr/src/app/node_modules
+            - /usr/share/app/node_modules
           key: v1-dependencies-{{ checksum "project.clj" }}
 
       - run: lein build-min
