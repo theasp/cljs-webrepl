@@ -23,6 +23,7 @@ jobs:
       LEIN_FAST_TRAMPOLINE: yes
 
     steps:
+      - run: apk add --no-cache git ssh
       - checkout
 
       # Download and cache dependencies
@@ -41,5 +42,4 @@ jobs:
           key: v1-dependencies-{{ checksum "project.clj" }}
 
       - run: lein build-min
-      - run: apk add --no-cache git
       - run: ./deploy.sh
