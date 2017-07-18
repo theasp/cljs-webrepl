@@ -1,0 +1,45 @@
+# Clojure CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-clojure/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      - image: theasp/clojurescript-nodejs:alpine
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    working_directory: /usr/share/app
+
+    environment:
+      LEIN_ROOT: "true"
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+      LEIN_FAST_TRAMPOLINE: yes
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "project.clj" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run: lein do deps, npm install
+
+      - save_cache:
+          paths:
+            - ~/.m2
+            - /usr/src/app/node_modules
+          key: v1-dependencies-{{ checksum "project.clj" }}
+
+      - run: lein build-min
+      - run: apk add --no-cache git
+      - run: ./deploy.sh
