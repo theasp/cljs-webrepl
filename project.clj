@@ -5,13 +5,13 @@
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.9.854"]
-                 [com.cognitect/transit-cljs "0.8.239"]
+                 [org.clojure/clojurescript "1.9.946"]
+                 [com.cognitect/transit-cljs "0.8.243"]
                  [com.taoensso/timbre "4.10.0"]
-                 [figwheel "0.5.12"]
-                 [fipp "0.6.9"]
+                 [figwheel "0.5.14"]
+                 [fipp "0.6.12"]
                  [hiccup "1.0.5"]
-                 [doo "0.1.7"]
+                 [doo "0.1.8"]
                  [reagent "0.7.0"]
                  [reagent-utils "0.2.1"]
                  [replumb "0.2.4"]
@@ -27,7 +27,7 @@
 
   :profiles {:frontend {:dependencies [[ca.gt0.theasp/reagent-mdl "0.1.0-SNAPSHOT"]
                                        [cljsjs/clipboard "1.6.1-1"]
-                                       [cljsjs/codemirror "5.24.0-1"]]
+                                       [cljsjs/codemirror "5.31.0-0"]]
 
                         :clean-targets ^{:protect false} [:target-path
                                                           [:cljsbuild :builds :frontend-dev :compiler :output-to]
