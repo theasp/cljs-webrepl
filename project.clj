@@ -17,9 +17,9 @@
                  [replumb "0.2.4"]
                  [com.cemerick/piggieback "0.2.2"]]
 
-  :plugins [[lein-cljsbuild "1.1.4"]
-            [lein-asset-minifier "0.2.7"]
-            [lein-doo "0.1.7"]]
+  :plugins [[lein-cljsbuild "1.1.7"]
+            [lein-asset-minifier "0.4.4"]
+            [lein-doo "0.1.8"]]
 
   :min-lein-version "2.5.0"
   :resource-paths ["resources" "target/cljsbuild"]
@@ -55,7 +55,7 @@
                                                              :pretty-print   false
                                                              :parallel-build true}}}}
 
-                        :plugins [[lein-figwheel "0.5.12"]]
+                        :plugins [[lein-figwheel "0.5.14"]]
 
                         :figwheel {:http-server-root "public"
                                    :server-port      3449
