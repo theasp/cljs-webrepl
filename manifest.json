@@ -1,0 +1,14 @@
+{
+    "lang": "en",
+    "dir": "ltr",
+    "name": "CLJS-WebREPL",
+    "description": "ClojureScript REPL",
+    "short_name": "CLJS-WebREPL",
+    "icons": [{
+        "src": "images/cljs-white.svg",
+        "type": "image/svg"
+    }],
+    "scope": "/cljs-webrepl/",
+    "start_url": "/cljs-webrepl/",
+    "display": "fullscreen"
+}
